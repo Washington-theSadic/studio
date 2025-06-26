@@ -1,8 +1,9 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { products } from '@/lib/products';
 import ProductCard from '@/components/product-card';
 import { Smartphone, Pill, Headset, ArrowRight, Tags } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
+import type { Product } from '@/lib/products';
 
 const categories = [
   { name: 'Apple', icon: Smartphone, href: '/products?category=Apple' },
@@ -11,9 +12,23 @@ const categories = [
   { name: 'Acessórios', icon: Headset, href: '/products?category=Acessórios' },
 ];
 
-export default function Home() {
-  const featuredProducts = products.filter((p) => p.featured).slice(0, 4);
-  const saleProducts = products.filter((p) => p.salePrice).slice(0, 4);
+export default async function Home() {
+  const { data: featuredProductsData } = await supabase
+    .from('products')
+    .select('*')
+    .eq('featured', true)
+    .eq('status', 'ativo')
+    .limit(4);
+
+  const { data: saleProductsData } = await supabase
+    .from('products')
+    .select('*')
+    .not('salePrice', 'is', null)
+    .eq('status', 'ativo')
+    .limit(4);
+  
+  const featuredProducts: Product[] = featuredProductsData ?? [];
+  const saleProducts: Product[] = saleProductsData ?? [];
 
   return (
     <div className="flex flex-col gap-16 md:gap-24">

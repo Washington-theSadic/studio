@@ -10,30 +10,35 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
+import { Loader2 } from 'lucide-react';
 
 export default function RegisterPage() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const { register } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-     try {
-      await register(name, email, password);
+    setIsLoading(true);
+    const { error } = await register(name, email, password);
+    setIsLoading(false);
+
+    if (error) {
+       toast({
+        variant: 'destructive',
+        title: 'Erro no Cadastro',
+        description: error.message,
+      });
+    } else {
       toast({
         title: 'Cadastro realizado!',
         description: 'Sua conta foi criada com sucesso. Bem-vindo!',
       });
       router.push('/');
-    } catch (error) {
-      toast({
-        variant: 'destructive',
-        title: 'Erro no Cadastro',
-        description: (error as Error).message,
-      });
     }
   };
 
@@ -60,6 +65,7 @@ export default function RegisterPage() {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 required
+                disabled={isLoading}
               />
             </div>
             <div className="space-y-2">
@@ -71,6 +77,7 @@ export default function RegisterPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
+                disabled={isLoading}
               />
             </div>
             <div className="space-y-2">
@@ -82,9 +89,11 @@ export default function RegisterPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
+                disabled={isLoading}
               />
             </div>
-            <Button type="submit" className="w-full">
+            <Button type="submit" className="w-full" disabled={isLoading}>
+              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Cadastrar
             </Button>
           </form>

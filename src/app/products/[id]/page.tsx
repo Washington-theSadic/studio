@@ -1,26 +1,84 @@
 
 "use client";
 
-import { useParams, useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { useParams, useRouter, notFound } from 'next/navigation';
 import Image from 'next/image';
-import { products, Product } from '@/lib/products';
+import { supabase } from '@/lib/supabase';
+import type { Product } from '@/lib/products';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 import { useCart } from '@/context/cart-context';
-import { notFound } from 'next/navigation';
-import { ShoppingCart } from 'lucide-react';
+import { ShoppingCart, Loader2 } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
+
+function ProductPageSkeleton() {
+  return (
+    <div className="grid md:grid-cols-2 gap-12 items-start">
+      <div>
+        <Skeleton className="aspect-square w-full rounded-lg" />
+        <div className="flex gap-2 mt-4">
+          <Skeleton className="w-20 h-20 rounded-lg" />
+          <Skeleton className="w-20 h-20 rounded-lg" />
+          <Skeleton className="w-20 h-20 rounded-lg" />
+        </div>
+      </div>
+      <div className="flex flex-col gap-6">
+        <Skeleton className="h-5 w-24" />
+        <Skeleton className="h-10 w-full" />
+        <Skeleton className="h-8 w-48" />
+        <Skeleton className="h-20 w-full" />
+        <div className="flex gap-4">
+          <Skeleton className="h-12 flex-1" />
+          <Skeleton className="h-12 flex-1" />
+        </div>
+      </div>
+    </div>
+  )
+}
+
 
 export default function ProductDetailPage() {
   const params = useParams();
   const router = useRouter();
   const { id } = params;
   const { addToCart } = useCart();
-  
-  const product = products.find((p: Product) => p.id === id);
+  const [product, setProduct] = useState<Product | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchProduct = async () => {
+      if (!id) return;
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('products')
+        .select('*')
+        .eq('id', id)
+        .single();
+      
+      if (error || !data) {
+        notFound();
+      } else {
+        setProduct(data);
+      }
+      setLoading(false);
+    };
+
+    fetchProduct();
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <ProductPageSkeleton />
+      </div>
+    );
+  }
 
   if (!product) {
-    notFound();
+    // notFound() should be called within the effect, but this is a fallback.
+    return null;
   }
 
   const formatPrice = (price: number) => {

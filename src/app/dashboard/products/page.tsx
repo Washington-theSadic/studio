@@ -1,9 +1,12 @@
+
 "use client"
 
 import * as React from "react"
 import Image from "next/image"
-import { products as initialProducts, Product } from "@/lib/products"
-import { PlusCircle, MoreHorizontal, X } from "lucide-react"
+import { PlusCircle, MoreHorizontal, X, Loader2 } from "lucide-react"
+
+import type { Product } from "@/lib/products"
+import { supabase } from "@/lib/supabase"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -41,11 +44,27 @@ import { useToast } from "@/hooks/use-toast"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 
 export default function DashboardProductsPage() {
-  const [products, setProducts] = React.useState<Product[]>(initialProducts)
+  const [products, setProducts] = React.useState<Product[]>([])
+  const [loading, setLoading] = React.useState(true)
   const [isSheetOpen, setIsSheetOpen] = React.useState(false)
   const [editingProduct, setEditingProduct] = React.useState<Product | null>(null)
   const [formImages, setFormImages] = React.useState<string[]>([])
   const { toast } = useToast();
+
+  const fetchProducts = React.useCallback(async () => {
+    setLoading(true);
+    const { data, error } = await supabase.from('products').select('*').order('created_at', { ascending: false });
+    if (error) {
+      toast({ title: "Erro ao buscar produtos", description: error.message, variant: "destructive" });
+    } else {
+      setProducts(data || []);
+    }
+    setLoading(false);
+  }, [toast]);
+
+  React.useEffect(() => {
+    fetchProducts();
+  }, [fetchProducts]);
 
   const handleEdit = (product: Product) => {
     setEditingProduct(product)
@@ -59,15 +78,19 @@ export default function DashboardProductsPage() {
     setIsSheetOpen(true)
   }
   
-  const handleDelete = (productId: string) => {
-    setProducts(products.filter(p => p.id !== productId))
-    toast({
-      title: "Produto Removido!",
-      description: "O produto foi removido com sucesso.",
-    });
+  const handleDelete = async (productId: string) => {
+    const { error } = await supabase.from('products').delete().eq('id', productId);
+    if (error) {
+      toast({ title: "Erro ao deletar produto", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Produto Removido!", description: "O produto foi removido com sucesso." });
+      fetchProducts(); // Re-fetch products
+    }
   }
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    // This is a simplified image handler that uses base64 data URIs.
+    // For a production app, you should upload files to Supabase Storage and store the URL.
     const files = event.target.files;
     if (files) {
       const filePromises = Array.from(files).map(file => {
@@ -103,16 +126,16 @@ export default function DashboardProductsPage() {
   };
 
 
-  const handleFormSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleFormSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
-    const newProductData = {
-      id: editingProduct ? editingProduct.id : Date.now().toString(),
+    const productData = {
+      id: editingProduct ? editingProduct.id : undefined,
       name: formData.get('name') as string,
       description: formData.get('description') as string,
       longDescription: formData.get('longDescription') as string,
       price: parseFloat(formData.get('price') as string),
-      salePrice: formData.get('salePrice') ? parseFloat(formData.get('salePrice') as string) : undefined,
+      salePrice: formData.get('salePrice') ? parseFloat(formData.get('salePrice') as string) : null,
       category: formData.get('category') as Product['category'],
       status: formData.get('status') as Product['status'],
       stock: parseInt(formData.get('stock') as string, 10),
@@ -120,12 +143,13 @@ export default function DashboardProductsPage() {
       images: formImages.length > 0 ? formImages : ['https://placehold.co/600x600'],
     };
 
-    if (editingProduct) {
-      setProducts(products.map(p => p.id === editingProduct.id ? newProductData : p));
-      toast({ title: "Produto Atualizado!", description: `${newProductData.name} foi atualizado.` });
+    const { error } = await supabase.from('products').upsert(productData);
+
+    if (error) {
+      toast({ title: "Erro ao salvar produto", description: error.message, variant: "destructive" });
     } else {
-      setProducts([newProductData, ...products]);
-      toast({ title: "Produto Adicionado!", description: `${newProductData.name} foi criado.` });
+      toast({ title: `Produto ${editingProduct ? 'Atualizado' : 'Adicionado'}!`, description: `${productData.name} foi salvo.` });
+      fetchProducts(); // Re-fetch
     }
     
     setIsSheetOpen(false);
@@ -155,6 +179,11 @@ export default function DashboardProductsPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
+           {loading ? (
+             <div className="flex justify-center items-center h-64">
+               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+             </div>
+           ) : (
           <Table>
             <TableHeader>
               <TableRow>
@@ -234,6 +263,7 @@ export default function DashboardProductsPage() {
               ))}
             </TableBody>
           </Table>
+           )}
         </CardContent>
         <CardFooter>
           <div className="text-xs text-muted-foreground">
@@ -302,14 +332,14 @@ export default function DashboardProductsPage() {
                   <Input id="price" name="price" type="number" step="0.01" defaultValue={editingProduct?.price} required />
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="salePrice">Preço Promocional</Label>
-                  <Input id="salePrice" name="salePrice" type="number" step="0.01" defaultValue={editingProduct?.salePrice} />
+                  <Label htmlFor="salePrice">Preço Promocional (opcional)</Label>
+                  <Input id="salePrice" name="salePrice" type="number" step="0.01" defaultValue={editingProduct?.salePrice || ''} />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
                   <Label htmlFor="category">Categoria</Label>
-                  <Select name="category" defaultValue={editingProduct?.category}>
+                  <Select name="category" defaultValue={editingProduct?.category} required>
                     <SelectTrigger>
                       <SelectValue placeholder="Selecione uma categoria" />
                     </SelectTrigger>
@@ -333,7 +363,7 @@ export default function DashboardProductsPage() {
                   </div>
                    <div className="grid gap-2">
                     <Label htmlFor="status">Status</Label>
-                    <Select name="status" defaultValue={editingProduct?.status}>
+                    <Select name="status" defaultValue={editingProduct?.status} required>
                       <SelectTrigger>
                         <SelectValue placeholder="Selecione um status" />
                       </SelectTrigger>
