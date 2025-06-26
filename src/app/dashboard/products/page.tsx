@@ -80,12 +80,41 @@ export default function DashboardProductsPage() {
   }
   
   const handleDelete = async (productId: string) => {
-    // Note: This doesn't delete images from storage. For a production app, you'd want to.
+    // Find the product to get the image URLs
+    const productToDelete = products.find(p => p.id === productId);
+    if (!productToDelete) {
+        toast({ title: "Erro", description: "Produto não encontrado.", variant: "destructive" });
+        return;
+    }
+
+    // Delete images from Supabase storage
+    if (productToDelete.images && productToDelete.images.length > 0) {
+        const supabaseImageUrls = productToDelete.images.filter(url => url.includes('supabase.co'));
+        
+        if (supabaseImageUrls.length > 0) {
+            const filePaths = supabaseImageUrls.map(url => {
+                // Extracts the path from a URL like: https://<...>.supabase.co/storage/v1/object/public/product-images/<file_path>
+                return url.substring(url.lastIndexOf('product-images/') + 'product-images/'.length);
+            });
+
+            const { error: imageError } = await supabase.storage
+              .from('product-images')
+              .remove(filePaths);
+              
+            if (imageError) {
+              // We can still try to delete the DB record.
+              console.error("Erro ao deletar imagens do storage:", imageError);
+              toast({ title: "Aviso", description: `Não foi possível remover as imagens, mas o produto será deletado. Erro: ${imageError.message}`, variant: "default" });
+            }
+        }
+    }
+
+    // Delete product from database
     const { error } = await supabase.from('products').delete().eq('id', productId);
     if (error) {
       toast({ title: "Erro ao deletar produto", description: error.message, variant: "destructive" });
     } else {
-      toast({ title: "Produto Removido!", description: "O produto foi removido com sucesso." });
+      toast({ title: "Produto Removido!", description: "O produto e suas imagens foram removidos com sucesso." });
       fetchProducts();
     }
   }
@@ -252,7 +281,7 @@ export default function DashboardProductsPage() {
                             <AlertDialogHeader>
                               <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
                               <AlertDialogDescription>
-                                Essa ação não pode ser desfeita. Isso irá deletar permanentemente o produto.
+                                Essa ação não pode ser desfeita. Isso irá deletar permanentemente o produto e suas imagens.
                               </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
