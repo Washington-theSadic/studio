@@ -131,60 +131,79 @@ export default function DashboardProductsPage() {
     setIsSubmitting(true);
 
     try {
-      const formData = new FormData(event.currentTarget);
-      
-      const uploadedImageUrls: string[] = [];
-      for (const img of formImages) {
-        if (typeof img === 'string') {
-          uploadedImageUrls.push(img);
-        } else {
-          const file = img;
-          const fileName = `${crypto.randomUUID()}-${file.name}`;
-          const { data, error: uploadError } = await supabase.storage
-            .from('public-images')
-            .upload(fileName, file);
+        const formData = new FormData(event.currentTarget);
 
-          if (uploadError) throw uploadError;
+        const uploadedImageUrls: string[] = [];
+        // Keep existing string URLs, upload new File objects
+        for (const img of formImages) {
+            if (typeof img === 'string') {
+                uploadedImageUrls.push(img);
+            } else {
+                const file = img;
+                const fileName = `${crypto.randomUUID()}-${file.name}`;
+                const { data, error: uploadError } = await supabase.storage
+                    .from('public-images')
+                    .upload(fileName, file);
 
-          const { data: { publicUrl } } = supabase.storage
-            .from('public-images')
-            .getPublicUrl(data.path);
-          
-          uploadedImageUrls.push(publicUrl);
+                if (uploadError) throw uploadError;
+
+                const { data: { publicUrl } } = supabase.storage
+                    .from('public-images')
+                    .getPublicUrl(data.path);
+
+                uploadedImageUrls.push(publicUrl);
+            }
         }
-      }
 
-      const priceStr = formData.get('price') as string;
-      const salePriceStr = formData.get('sale_price') as string;
+        const priceStr = formData.get('price') as string;
+        const salePriceStr = formData.get('sale_price') as string;
 
-      const productData = {
-        id: editingProduct ? editingProduct.id : undefined,
-        name: formData.get('name') as string,
-        description: formData.get('description') as string,
-        long_description: formData.get('long_description') as string,
-        price: parseFloat(priceStr),
-        sale_price: salePriceStr ? parseFloat(salePriceStr) : null,
-        category: formData.get('category') as Product['category'],
-        status: formData.get('status') as Product['status'],
-        stock: parseInt(formData.get('stock') as string, 10),
-        featured: formData.get('featured') === 'on',
-        images: uploadedImageUrls.length > 0 ? uploadedImageUrls : ['https://placehold.co/600x600'],
-      };
+        // Common data for both insert and update
+        const productPayload = {
+            name: formData.get('name') as string,
+            description: formData.get('description') as string,
+            long_description: formData.get('long_description') as string,
+            price: parseFloat(priceStr),
+            sale_price: salePriceStr ? parseFloat(salePriceStr) : null,
+            category: formData.get('category') as Product['category'],
+            status: formData.get('status') as Product['status'],
+            stock: parseInt(formData.get('stock') as string, 10),
+            featured: formData.get('featured') === 'on',
+            images: uploadedImageUrls.length > 0 ? uploadedImageUrls : ['https://placehold.co/600x600'],
+        };
+        
+        let apiError: any;
 
-      const { error } = await supabase.from('products').upsert(productData);
+        if (editingProduct) {
+            // Update existing product
+            const { error } = await supabase
+                .from('products')
+                .update(productPayload)
+                .eq('id', editingProduct.id);
+            apiError = error;
+        } else {
+            // Insert new product
+            const { error } = await supabase
+                .from('products')
+                .insert(productPayload);
+            apiError = error;
+        }
 
-      if (error) throw error;
+        if (apiError) {
+            throw apiError;
+        }
 
-      toast({ title: `Produto ${editingProduct ? 'Atualizado' : 'Adicionado'}!`, description: `${productData.name} foi salvo.` });
-      fetchProducts();
-      setIsSheetOpen(false);
-      setEditingProduct(null);
-      setFormImages([]);
+        toast({ title: `Produto ${editingProduct ? 'Atualizado' : 'Adicionado'}!`, description: `${productPayload.name} foi salvo.` });
+        fetchProducts();
+        setIsSheetOpen(false);
+        setEditingProduct(null);
+        setFormImages([]);
+
     } catch (error: any) {
-      console.error("Erro detalhado ao salvar produto:", error);
-      toast({ title: "Erro ao salvar produto", description: error.message || "Ocorreu um erro desconhecido.", variant: "destructive" });
+        console.error("Erro detalhado ao salvar produto:", error);
+        toast({ title: "Erro ao salvar produto", description: error.message || "Ocorreu um erro desconhecido.", variant: "destructive" });
     } finally {
-      setIsSubmitting(false);
+        setIsSubmitting(false);
     }
   };
   
