@@ -20,15 +20,15 @@ export default function ProductCard({ product }: ProductCardProps) {
   };
 
   return (
-    <Card className="flex flex-col overflow-hidden h-full transition-shadow duration-300 hover:shadow-xl">
-      <CardHeader className="p-0">
-        <Link href={`/products/${product.id}`} className="block">
+    <Card className="group flex flex-col overflow-hidden h-full transition-all duration-300 bg-secondary/20 hover:bg-secondary/50 border-border/30 hover:border-brand">
+      <CardHeader className="p-0 border-b border-border/30">
+        <Link href={`/products/${product.id}`} className="block overflow-hidden">
           <div className="aspect-square relative w-full">
             <Image
               src={product.images[0]}
               alt={product.name}
               fill
-              className="object-cover"
+              className="object-cover transition-transform duration-500 group-hover:scale-105"
               sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
               data-ai-hint={`${product.category.toLowerCase()} product`}
             />
@@ -37,12 +37,13 @@ export default function ProductCard({ product }: ProductCardProps) {
       </CardHeader>
       <CardContent className="p-4 flex-grow">
         <Link href={`/products/${product.id}`}>
-          <CardTitle className="text-lg font-semibold leading-tight hover:text-brand transition-colors">
+          <CardTitle className="text-lg font-semibold leading-tight hover:text-brand transition-colors font-heading">
             {product.name}
           </CardTitle>
         </Link>
+        <p className="text-sm text-muted-foreground mt-2 line-clamp-2">{product.description}</p>
       </CardContent>
-      <CardFooter className="p-4 flex flex-col items-start gap-4">
+      <CardFooter className="p-4 flex flex-col items-start gap-4 mt-auto">
         <p className="text-2xl font-bold text-foreground">{formatPrice(product.price)}</p>
         <Button className="w-full" onClick={() => addToCart(product)}>
           <ShoppingCart className="mr-2 h-4 w-4" />
