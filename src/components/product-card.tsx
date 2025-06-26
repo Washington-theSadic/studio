@@ -44,7 +44,14 @@ export default function ProductCard({ product }: ProductCardProps) {
         <p className="text-sm text-muted-foreground mt-2 line-clamp-2">{product.description}</p>
       </CardContent>
       <CardFooter className="p-4 flex flex-col items-start gap-4 mt-auto">
-        <p className="text-2xl font-bold text-foreground">{formatPrice(product.price)}</p>
+        {product.salePrice ? (
+          <div className="flex items-baseline gap-2">
+            <p className="text-2xl font-bold text-foreground">{formatPrice(product.salePrice)}</p>
+            <p className="text-lg text-muted-foreground line-through">{formatPrice(product.price)}</p>
+          </div>
+        ) : (
+          <p className="text-2xl font-bold text-foreground">{formatPrice(product.price)}</p>
+        )}
         <Button className="w-full" onClick={() => addToCart(product)}>
           <ShoppingCart className="mr-2 h-4 w-4" />
           Adicionar ao carrinho

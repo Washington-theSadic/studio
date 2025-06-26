@@ -10,7 +10,7 @@ type ProductGridProps = {
   products: Product[];
 };
 
-const categories = ['Todos', 'iPhone', 'Android', 'Minoxidil', 'Acessórios'] as const;
+const categories = ['Todos', 'Apple', 'Android', 'Minoxidil', 'Acessórios'] as const;
 type Category = typeof categories[number];
 
 export default function ProductGrid({ products }: ProductGridProps) {

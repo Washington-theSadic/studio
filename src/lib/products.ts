@@ -4,15 +4,16 @@ export type Product = {
   description: string;
   longDescription: string;
   price: number;
+  salePrice?: number;
   images: string[];
-  category: 'iPhone' | 'Android' | 'Minoxidil' | 'Acessórios';
+  category: 'Apple' | 'Android' | 'Minoxidil' | 'Acessórios';
   featured?: boolean;
 };
 
 export const products: Product[] = [
   {
     id: '1',
-    name: 'iPhone 15 Pro',
+    name: 'Apple iPhone 15 Pro',
     description: 'O mais recente e poderoso iPhone.',
     longDescription: 'O iPhone 15 Pro é forjado em titânio aeroespacial e vem com o revolucionário chip A17 Pro, um botão de Ação configurável e o sistema de câmera Pro mais poderoso em um iPhone. A tela Super Retina XDR de 6,1 polegadas com ProMotion aumenta as taxas de atualização para 120Hz quando você precisa de desempenho gráfico excepcional.',
     price: 9299.00,
@@ -21,7 +22,7 @@ export const products: Product[] = [
       'https://placehold.co/600x600',
       'https://placehold.co/600x600',
     ],
-    category: 'iPhone',
+    category: 'Apple',
     featured: true,
   },
   {
@@ -65,14 +66,15 @@ export const products: Product[] = [
   },
   {
     id: '5',
-    name: 'iPhone 14',
+    name: 'Apple iPhone 14',
     description: 'Potência e elegância em suas mãos.',
     longDescription: 'O iPhone 14 possui o impressionante chip A15 Bionic, uma câmera grande-angular aprimorada para fotos incríveis em pouca luz e o Modo Cinema, que agora grava em 4K Dolby Vision. Sua tela Super Retina XDR é mais brilhante e nítida.',
     price: 5999.00,
+    salePrice: 5499.00,
     images: [
       'https://placehold.co/600x600',
     ],
-    category: 'iPhone',
+    category: 'Apple',
   },
   {
     id: '6',
@@ -87,10 +89,11 @@ export const products: Product[] = [
   },
   {
     id: '7',
-    name: 'Capa de Silicone para iPhone',
+    name: 'Capa de Silicone para Apple iPhone',
     description: 'Proteção com estilo e toque suave.',
     longDescription: 'A capa de silicone com MagSafe foi criada pela Apple especialmente para o iPhone. O exterior em silicone, com toque sedoso e suave, é gostoso de segurar. E, na parte interna, uma camada de microfibra ajuda a proteger o aparelho.',
     price: 199.00,
+    salePrice: 149.00,
     images: [
       'https://placehold.co/600x600',
     ],

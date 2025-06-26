@@ -2,10 +2,10 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { products } from '@/lib/products';
 import ProductCard from '@/components/product-card';
-import { Smartphone, Pill, Headset, ArrowRight } from 'lucide-react';
+import { Smartphone, Pill, Headset, ArrowRight, Tags } from 'lucide-react';
 
 const categories = [
-  { name: 'iPhone', icon: Smartphone, href: '/products?category=iPhone' },
+  { name: 'Apple', icon: Smartphone, href: '/products?category=Apple' },
   { name: 'Android', icon: Smartphone, href: '/products?category=Android' },
   { name: 'Minoxidil', icon: Pill, href: '/products?category=Minoxidil' },
   { name: 'Acessórios', icon: Headset, href: '/products?category=Acessórios' },
@@ -13,6 +13,7 @@ const categories = [
 
 export default function Home() {
   const featuredProducts = products.filter((p) => p.featured).slice(0, 4);
+  const saleProducts = products.filter((p) => p.salePrice).slice(0, 4);
 
   return (
     <div className="flex flex-col gap-16 md:gap-24">
@@ -69,10 +70,39 @@ export default function Home() {
         </div>
       </section>
 
+      {/* On Sale Products Section */}
+      {saleProducts.length > 0 && (
+        <section 
+          className="container mx-auto px-4 animate-fade-in-up"
+          style={{ animationDelay: '1.0s', animationFillMode: 'forwards', opacity: 0 }}
+        >
+          <div className="flex justify-between items-center mb-12">
+              <h2 className="text-3xl font-bold font-heading flex items-center gap-2"><Tags className="text-brand"/>Produtos em Promoção</h2>
+              <Button variant="link" asChild>
+                  <Link href="/products">
+                      Ver todos
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                  </Link>
+              </Button>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+            {saleProducts.map((product, i) => (
+               <div 
+                  key={product.id}
+                  className="animate-fade-in-up" 
+                  style={{ animationDelay: `${1.2 + i * 0.1}s`, animationFillMode: 'forwards', opacity: 0 }}
+               >
+                  <ProductCard product={product} />
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
       {/* Featured Products Section */}
       <section 
         className="container mx-auto px-4 pb-16 md:pb-24 animate-fade-in-up"
-        style={{ animationDelay: '1.0s', animationFillMode: 'forwards', opacity: 0 }}
+        style={{ animationDelay: '1.4s', animationFillMode: 'forwards', opacity: 0 }}
       >
         <div className="flex justify-between items-center mb-12">
             <h2 className="text-3xl font-bold font-heading">Produtos em Destaque</h2>
@@ -88,7 +118,7 @@ export default function Home() {
              <div 
                 key={product.id}
                 className="animate-fade-in-up" 
-                style={{ animationDelay: `${1.2 + i * 0.1}s`, animationFillMode: 'forwards', opacity: 0 }}
+                style={{ animationDelay: `${1.6 + i * 0.1}s`, animationFillMode: 'forwards', opacity: 0 }}
              >
                 <ProductCard product={product} />
             </div>
