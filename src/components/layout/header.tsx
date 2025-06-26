@@ -17,6 +17,9 @@ const NavLinks = ({ className, onLinkClick }: { className?: string, onLinkClick?
     <Link href="/products" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors" onClick={onLinkClick}>
       Produtos
     </Link>
+    <Link href="/dashboard" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors" onClick={onLinkClick}>
+      Dashboard
+    </Link>
   </nav>
 );
 
