@@ -1,19 +1,40 @@
+
 "use client";
 
 import Image from 'next/image';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useCart } from '@/context/cart-context';
+import { useAuth } from '@/context/auth-context';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Trash2, ShoppingBag } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
+import { useToast } from '@/hooks/use-toast';
 
 export default function CartPage() {
-  const { cartItems, removeFromCart, updateQuantity, cartCount, totalPrice } = useCart();
+  const { cartItems, removeFromCart, updateQuantity, cartCount, totalPrice, clearCart } = useCart();
+  const { currentUser } = useAuth();
+  const router = useRouter();
+  const { toast } = useToast();
 
   const formatPrice = (price: number) => {
     return price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  };
+
+  const handleCheckout = () => {
+    if (!currentUser) {
+      router.push('/login?redirect=/cart');
+    } else {
+      // Mock checkout process
+      toast({
+        title: 'Pedido Finalizado!',
+        description: 'Seu pedido foi realizado com sucesso. Obrigado por comprar conosco!',
+      });
+      clearCart();
+      router.push('/');
+    }
   };
 
   if (cartCount === 0) {
@@ -90,7 +111,9 @@ export default function CartPage() {
               </div>
             </CardContent>
             <CardFooter>
-              <Button size="lg" className="w-full">Finalizar Pedido</Button>
+              <Button size="lg" className="w-full" onClick={handleCheckout}>
+                {currentUser ? 'Finalizar Pedido' : 'Fazer Login para Finalizar'}
+              </Button>
             </CardFooter>
           </Card>
         </div>

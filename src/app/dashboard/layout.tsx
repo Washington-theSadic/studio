@@ -1,16 +1,19 @@
+
 'use client';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
+import React, { useEffect } from 'react';
 import { Home, Package, ShoppingCart, Users, PanelLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/context/auth-context';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: Home },
   { href: '/dashboard/products', label: 'Produtos', icon: Package },
   { href: '/dashboard/orders', label: 'Pedidos', icon: Users },
-  { href: '/cart', label: 'Carrinho', icon: ShoppingCart },
 ];
 
 export default function DashboardLayout({
@@ -19,6 +22,28 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const { currentUser, loading } = useAuth();
+
+  useEffect(() => {
+    if (!loading && (!currentUser || currentUser.role !== 'admin')) {
+      router.push('/login');
+    }
+  }, [currentUser, loading, router]);
+  
+  if (loading || !currentUser || currentUser.role !== 'admin') {
+    return (
+      <div className="flex min-h-screen w-full items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <Skeleton className="h-12 w-12 rounded-full" />
+          <div className="space-y-2">
+            <Skeleton className="h-4 w-[250px]" />
+            <Skeleton className="h-4 w-[200px]" />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const getPageTitle = () => {
     const currentNav = navItems.find(item => pathname === item.href);
@@ -45,7 +70,7 @@ export default function DashboardLayout({
               href={item.href}
               className={cn(
                 "flex h-9 w-9 items-center justify-center rounded-lg transition-colors hover:text-foreground md:h-8 md:w-8",
-                pathname === item.href ? "bg-accent text-accent-foreground" : "text-muted-foreground"
+                pathname.startsWith(item.href) ? "bg-accent text-accent-foreground" : "text-muted-foreground"
               )}
             >
               <item.icon className="h-5 w-5" />
@@ -78,7 +103,7 @@ export default function DashboardLayout({
                     href={item.href}
                     className={cn(
                       "flex items-center gap-4 px-2.5 hover:text-foreground",
-                      pathname === item.href ? "text-foreground" : "text-muted-foreground"
+                      pathname.startsWith(item.href) ? "text-foreground" : "text-muted-foreground"
                     )}
                   >
                     <item.icon className="h-5 w-5" />
