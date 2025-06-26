@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from "react"
@@ -79,20 +80,17 @@ export default function DashboardProductsPage() {
   }
   
   const handleDelete = async (productId: string) => {
-    // Find the product to get the image URLs
     const productToDelete = products.find(p => p.id === productId);
     if (!productToDelete) {
         toast({ title: "Erro", description: "Produto não encontrado.", variant: "destructive" });
         return;
     }
 
-    // Delete images from Supabase storage
     if (productToDelete.images && productToDelete.images.length > 0) {
         const supabaseImageUrls = productToDelete.images.filter(url => url.includes('supabase.co'));
         
         if (supabaseImageUrls.length > 0) {
             const filePaths = supabaseImageUrls.map(url => {
-                // Extracts the path from a URL like: https://<...>.supabase.co/storage/v1/object/public/public-images/<file_path>
                 return url.substring(url.lastIndexOf('public-images/') + 'public-images/'.length);
             });
 
@@ -101,14 +99,12 @@ export default function DashboardProductsPage() {
               .remove(filePaths);
               
             if (imageError) {
-              // We can still try to delete the DB record.
               console.error("Erro ao deletar imagens do storage:", imageError);
               toast({ title: "Aviso", description: `Não foi possível remover as imagens, mas o produto será deletado. Erro: ${imageError.message}`, variant: "default" });
             }
         }
     }
 
-    // Delete product from database
     const { error } = await supabase.from('products').delete().eq('id', productId);
     if (error) {
       toast({ title: "Erro ao deletar produto", description: error.message, variant: "destructive" });
@@ -140,9 +136,8 @@ export default function DashboardProductsPage() {
       const uploadedImageUrls: string[] = [];
       for (const img of formImages) {
         if (typeof img === 'string') {
-          uploadedImageUrls.push(img); // Keep existing URL
+          uploadedImageUrls.push(img);
         } else {
-          // It's a File object, upload it
           const file = img;
           const fileName = `${crypto.randomUUID()}-${file.name}`;
           const { data, error: uploadError } = await supabase.storage
@@ -186,6 +181,7 @@ export default function DashboardProductsPage() {
       setEditingProduct(null);
       setFormImages([]);
     } catch (error: any) {
+      console.error("Erro detalhado ao salvar produto:", error);
       toast({ title: "Erro ao salvar produto", description: error.message || "Ocorreu um erro desconhecido.", variant: "destructive" });
     } finally {
       setIsSubmitting(false);
