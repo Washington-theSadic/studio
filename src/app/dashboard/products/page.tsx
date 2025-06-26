@@ -243,7 +243,7 @@ export default function DashboardProductsPage() {
         }
 
         if (apiError) {
-            console.error("Erro do Supabase:", apiError);
+            console.error("Erro do Supabase:", JSON.stringify(apiError, null, 2));
             throw new Error(`Falha ao salvar no banco de dados: ${apiError.message}`);
         }
 
