@@ -100,14 +100,14 @@ export default function DashboardProductsPage() {
               
             if (imageError) {
               console.error("Erro ao deletar imagens do storage:", imageError);
-              toast({ title: "Aviso", description: `Não foi possível remover as imagens, mas o produto será deletado. Erro: ${imageError.message}`, variant: "default" });
+              toast({ title: "Aviso", description: `Não foi possível remover as imagens do produto. Erro: ${imageError.message}`, variant: "default" });
             }
         }
     }
 
     const { error } = await supabase.from('products').delete().eq('id', productId);
     if (error) {
-      toast({ title: "Erro ao deletar produto", description: error.message, variant: "destructive" });
+      toast({ title: "Erro ao deletar produto", description: `Falha ao remover do banco de dados: ${error.message}`, variant: "destructive" });
     } else {
       toast({ title: "Produto Removido!", description: "O produto e suas imagens foram removidos com sucesso." });
       fetchProducts();
@@ -134,7 +134,6 @@ export default function DashboardProductsPage() {
         const formData = new FormData(event.currentTarget);
         const uploadedImageUrls: string[] = [];
 
-        // Upload new files and keep existing URLs
         for (const img of formImages) {
             if (typeof img === 'string') {
                 uploadedImageUrls.push(img);
@@ -155,7 +154,6 @@ export default function DashboardProductsPage() {
             }
         }
 
-        // Validate and parse numeric inputs
         const priceStr = formData.get('price') as string;
         const salePriceStr = formData.get('sale_price') as string;
         const stockStr = formData.get('stock') as string;
@@ -169,7 +167,6 @@ export default function DashboardProductsPage() {
         
         const sale_price = (salePriceStr && !isNaN(parseFloat(salePriceStr))) ? parseFloat(salePriceStr) : null;
 
-        // Build the final payload
         const productPayload = {
             name: formData.get('name') as string,
             description: formData.get('description') as string,
@@ -183,31 +180,25 @@ export default function DashboardProductsPage() {
             images: uploadedImageUrls.length > 0 ? uploadedImageUrls : ['https://placehold.co/600x600'],
         };
 
-        let response;
+        let apiError;
         if (editingProduct) {
-            // Update existing product
-            response = await supabase
+            const { error } = await supabase
                 .from('products')
                 .update(productPayload)
-                .eq('id', editingProduct.id)
-                .select()
-                .single();
+                .eq('id', editingProduct.id);
+            apiError = error;
         } else {
-            // Insert new product
-            response = await supabase
+            const { error } = await supabase
                 .from('products')
-                .insert(productPayload)
-                .select()
-                .single();
+                .insert(productPayload);
+            apiError = error;
         }
-
-        const { error: apiError } = response;
 
         if (apiError) {
             throw apiError;
         }
 
-        toast({ title: `Produto ${editingProduct ? 'Atualizado' : 'Adicionado'}!`, description: `${productPayload.name} foi salvo.` });
+        toast({ title: `Produto ${editingProduct ? 'Atualizado' : 'Adicionado'}!`, description: `${productPayload.name} foi salvo com sucesso.` });
         fetchProducts();
         setIsSheetOpen(false);
         setEditingProduct(null);
@@ -215,7 +206,7 @@ export default function DashboardProductsPage() {
 
     } catch (error: any) {
         console.error("Erro detalhado ao salvar produto:", error);
-        const errorMessage = error.message || "Ocorreu um erro desconhecido. Verifique se todos os campos estão preenchidos corretamente.";
+        const errorMessage = error.message || "Ocorreu um erro desconhecido. Verifique as permissões de acesso (RLS) no Supabase e se todos os campos estão preenchidos corretamente.";
         toast({ title: "Erro ao salvar produto", description: errorMessage, variant: "destructive" });
     } finally {
         setIsSubmitting(false);
@@ -459,5 +450,4 @@ export default function DashboardProductsPage() {
       </Sheet>
     </>
   )
-
-    
+}
