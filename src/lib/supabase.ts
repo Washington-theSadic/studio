@@ -1,15 +1,8 @@
 import { createClient } from '@supabase/supabase-js'
 
-// IMPORTANT: Create a .env.local file in the root of your project
-// and add your Supabase URL and Anon Key there.
-// NEXT_PUBLIC_SUPABASE_URL=https://your-project-url.supabase.co
-// NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co';
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key';
-
-if (supabaseUrl === 'https://placeholder.supabase.co' || supabaseAnonKey === 'placeholder-key') {
-  console.warn('Supabase credentials are not set in .env.local. Using placeholder values. The app will run, but database features will not work.');
-}
+// The Supabase URL and Key are now hardcoded for immediate functionality.
+// For production environments, it is recommended to use environment variables.
+const supabaseUrl = 'https://sctvzllsrwghijlcioxz.supabase.co';
+const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNjdHZ6bGxzcndnaGlqbGNpb3h6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA5NTg2ODEsImV4cCI6MjA2NjUzNDY4MX0.pcQlAVWTZPMhAhf-4vS-DBu4bZIe7C2g0nt8CVK230I';
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
