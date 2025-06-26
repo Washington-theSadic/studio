@@ -123,15 +123,15 @@ export default function ProductDetailPage() {
           <h1 className="text-4xl font-bold font-headline">{product.name}</h1>
           
           <div className="flex items-baseline gap-4">
-            <p className="text-3xl font-bold text-foreground">{formatPrice(product.salePrice ?? product.price)}</p>
-            {product.salePrice && (
+            <p className="text-3xl font-bold text-foreground">{formatPrice(product.sale_price ?? product.price)}</p>
+            {product.sale_price && (
               <p className="text-2xl text-muted-foreground line-through">{formatPrice(product.price)}</p>
             )}
           </div>
           
           <div className="text-muted-foreground leading-relaxed">
             <h2 className="text-xl font-semibold text-foreground mb-2">Descrição</h2>
-            <p>{product.longDescription}</p>
+            <p>{product.long_description}</p>
           </div>
 
           <div className="flex flex-col sm:flex-row gap-4 mt-4">

@@ -161,15 +161,15 @@ export default function DashboardProductsPage() {
       }
 
       const priceStr = formData.get('price') as string;
-      const salePriceStr = formData.get('salePrice') as string;
+      const salePriceStr = formData.get('sale_price') as string;
 
       const productData = {
         id: editingProduct ? editingProduct.id : undefined,
         name: formData.get('name') as string,
         description: formData.get('description') as string,
-        longDescription: formData.get('longDescription') as string,
+        long_description: formData.get('long_description') as string,
         price: parseFloat(priceStr),
-        salePrice: salePriceStr ? parseFloat(salePriceStr) : null,
+        sale_price: salePriceStr ? parseFloat(salePriceStr) : null,
         category: formData.get('category') as Product['category'],
         status: formData.get('status') as Product['status'],
         stock: parseInt(formData.get('stock') as string, 10),
@@ -327,8 +327,8 @@ export default function DashboardProductsPage() {
                 <Textarea id="description" name="description" defaultValue={editingProduct?.description} required disabled={isSubmitting} />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="longDescription">Descrição Longa</Label>
-                <Textarea id="longDescription" name="longDescription" rows={5} defaultValue={editingProduct?.longDescription} required disabled={isSubmitting} />
+                <Label htmlFor="long_description">Descrição Longa</Label>
+                <Textarea id="long_description" name="long_description" rows={5} defaultValue={editingProduct?.long_description} required disabled={isSubmitting} />
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="images">Imagens</Label>
@@ -373,8 +373,8 @@ export default function DashboardProductsPage() {
                   <Input id="price" name="price" type="number" step="0.01" defaultValue={editingProduct?.price} required disabled={isSubmitting} />
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="salePrice">Preço Promocional (opcional)</Label>
-                  <Input id="salePrice" name="salePrice" type="number" step="0.01" defaultValue={editingProduct?.salePrice || ''} disabled={isSubmitting} />
+                  <Label htmlFor="sale_price">Preço Promocional (opcional)</Label>
+                  <Input id="sale_price" name="sale_price" type="number" step="0.01" defaultValue={editingProduct?.sale_price || ''} disabled={isSubmitting} />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">

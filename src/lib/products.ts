@@ -2,9 +2,9 @@ export type Product = {
   id: string;
   name: string;
   description: string;
-  longDescription: string;
+  long_description: string;
   price: number;
-  salePrice?: number;
+  sale_price?: number;
   images: string[];
   category: 'Apple' | 'Android' | 'Minoxidil' | 'Acessórios';
   featured?: boolean;

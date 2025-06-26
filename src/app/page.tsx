@@ -23,7 +23,7 @@ export default async function Home() {
   const { data: saleProductsData } = await supabase
     .from('products')
     .select('*')
-    .not('salePrice', 'is', null)
+    .not('sale_price', 'is', null)
     .eq('status', 'ativo')
     .limit(4);
   
