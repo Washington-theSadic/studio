@@ -30,10 +30,10 @@ export default function Home() {
         />
         <div className="relative z-10 p-6 bg-background/70 rounded-lg shadow-xl">
           <h1 className="text-4xl md:text-6xl font-bold font-headline text-foreground">
-            Tecnologia e Cuidado Pessoal
+            A melhor Loja de importados do Oeste
           </h1>
           <p className="mt-4 text-lg md:text-xl max-w-2xl mx-auto text-muted-foreground">
-            Os melhores produtos, dos últimos lançamentos de smartphones a cosméticos de alta performance.
+            Encontre os melhores produtos importados, de smartphones a cosméticos, com os melhores preços e qualidade.
           </p>
           <Button asChild size="lg" className="mt-8">
             <Link href="/products">Ver todos os produtos</Link>
