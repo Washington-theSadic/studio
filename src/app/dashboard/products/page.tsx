@@ -112,35 +112,33 @@ export default function DashboardProductsPage() {
     try {
         // Passo 1: Remover imagens do armazenamento
         if (productToDelete.images && productToDelete.images.length > 0) {
+            const bucketName = 'public-images';
             const filePaths = productToDelete.images
                 .map(url => {
-                    // A URL precisa ser válida e do bucket correto.
-                    // Somente tenta extrair o path se a URL for do Supabase Storage.
-                    if (url && url.startsWith(supabaseUrl)) {
-                        try {
-                            const urlObject = new URL(url);
-                            // O path esperado é algo como /storage/v1/object/public/public-images/image.png
-                            // Queremos extrair o que vem depois de 'public-images/'
-                            const pathSegments = urlObject.pathname.split('/');
-                            const bucketNameIndex = pathSegments.indexOf('public-images');
-                            if (bucketNameIndex !== -1 && bucketNameIndex + 1 < pathSegments.length) {
-                                const filePath = pathSegments.slice(bucketNameIndex + 1).join('/');
-                                return decodeURIComponent(filePath);
-                            }
-                        } catch (e) {
-                            console.error('URL de imagem inválida, pulando a remoção:', url);
-                            return null;
-                        }
+                    // Ignora URLs de placeholder que não são do nosso bucket
+                    if (!url || !url.startsWith(supabaseUrl)) {
+                        return null;
                     }
-                    // Ignora placeholders ou URLs externas que não são do Supabase
+                    // Extrai o path do arquivo da URL de forma robusta
+                    try {
+                        const urlObject = new URL(url);
+                        // O path no Supabase começa depois de /public/<bucket-name>/
+                        const pathKey = `/storage/v1/object/public/${bucketName}/`;
+                        if (urlObject.pathname.includes(pathKey)) {
+                            return urlObject.pathname.split(pathKey)[1];
+                        }
+                    } catch (e) {
+                         console.error('URL de imagem inválida, pulando a remoção:', url);
+                         return null;
+                    }
                     return null;
                 })
-                .filter((path): path is string => path !== null);
+                .filter((path): path is string => !!path);
 
             if (filePaths.length > 0) {
                 console.log("Tentando deletar os seguintes arquivos do storage:", filePaths);
                 const { error: imageError } = await supabase.storage
-                    .from('public-images')
+                    .from(bucketName)
                     .remove(filePaths);
                 
                 if (imageError) {
@@ -540,3 +538,5 @@ export default function DashboardProductsPage() {
     </>
   )
 }
+
+    
