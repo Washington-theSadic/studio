@@ -39,7 +39,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="container mx-auto flex items-center justify-center min-h-[calc(100vh-10rem)] py-12">
+    <div className="container mx-auto flex items-center justify-center min-h-[calc(100vh-10rem)] py-12 animate-fade-in-up">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl font-bold">Acessar sua Conta</CardTitle>

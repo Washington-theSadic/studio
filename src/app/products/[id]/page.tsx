@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useParams, useRouter } from 'next/navigation';
@@ -32,7 +33,7 @@ export default function ProductDetailPage() {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-8 animate-fade-in-up">
       <div className="grid md:grid-cols-2 gap-12 items-start">
         <div>
           <Carousel className="w-full">

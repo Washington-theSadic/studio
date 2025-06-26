@@ -39,7 +39,7 @@ export default function CartPage() {
 
   if (cartCount === 0) {
     return (
-      <div className="container mx-auto px-4 py-16 text-center">
+      <div className="container mx-auto px-4 py-16 text-center animate-fade-in-up">
         <ShoppingBag className="mx-auto h-24 w-24 text-muted-foreground mb-4" />
         <h1 className="text-3xl font-bold font-headline mb-2">Seu carrinho está vazio</h1>
         <p className="text-muted-foreground mb-6">Parece que você ainda não adicionou nenhum produto.</p>
@@ -51,7 +51,7 @@ export default function CartPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-8 animate-fade-in-up">
       <h1 className="text-4xl font-bold font-headline mb-8">Seu Carrinho</h1>
       <div className="grid lg:grid-cols-3 gap-12 items-start">
         <div className="lg:col-span-2">
