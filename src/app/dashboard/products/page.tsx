@@ -1,4 +1,3 @@
-
 "use client"
 
 import * as React from "react"
@@ -93,12 +92,12 @@ export default function DashboardProductsPage() {
         
         if (supabaseImageUrls.length > 0) {
             const filePaths = supabaseImageUrls.map(url => {
-                // Extracts the path from a URL like: https://<...>.supabase.co/storage/v1/object/public/product-images/<file_path>
-                return url.substring(url.lastIndexOf('product-images/') + 'product-images/'.length);
+                // Extracts the path from a URL like: https://<...>.supabase.co/storage/v1/object/public/public-images/<file_path>
+                return url.substring(url.lastIndexOf('public-images/') + 'public-images/'.length);
             });
 
             const { error: imageError } = await supabase.storage
-              .from('product-images')
+              .from('public-images')
               .remove(filePaths);
               
             if (imageError) {
@@ -147,13 +146,13 @@ export default function DashboardProductsPage() {
           const file = img;
           const fileName = `${crypto.randomUUID()}-${file.name}`;
           const { data, error: uploadError } = await supabase.storage
-            .from('product-images')
+            .from('public-images')
             .upload(fileName, file);
 
           if (uploadError) throw uploadError;
 
           const { data: { publicUrl } } = supabase.storage
-            .from('product-images')
+            .from('public-images')
             .getPublicUrl(data.path);
           
           uploadedImageUrls.push(publicUrl);
