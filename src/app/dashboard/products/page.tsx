@@ -132,9 +132,9 @@ export default function DashboardProductsPage() {
 
     try {
         const formData = new FormData(event.currentTarget);
-
         const uploadedImageUrls: string[] = [];
-        // Keep existing string URLs, upload new File objects
+
+        // Upload new files and keep existing URLs
         for (const img of formImages) {
             if (typeof img === 'string') {
                 uploadedImageUrls.push(img);
@@ -155,47 +155,53 @@ export default function DashboardProductsPage() {
             }
         }
 
+        // Validate and parse numeric inputs
         const priceStr = formData.get('price') as string;
         const salePriceStr = formData.get('sale_price') as string;
         const stockStr = formData.get('stock') as string;
 
         const price = parseFloat(priceStr);
         const stock = parseInt(stockStr, 10);
-        const sale_price = (salePriceStr && !isNaN(parseFloat(salePriceStr))) ? parseFloat(salePriceStr) : null;
-
+        
         if (isNaN(price) || isNaN(stock)) {
             throw new Error("Preço e Estoque devem ser números válidos.");
         }
+        
+        const sale_price = (salePriceStr && !isNaN(parseFloat(salePriceStr))) ? parseFloat(salePriceStr) : null;
 
+        // Build the final payload
         const productPayload = {
             name: formData.get('name') as string,
             description: formData.get('description') as string,
             long_description: formData.get('long_description') as string,
-            price: price,
-            sale_price: sale_price,
+            price,
+            sale_price,
             category: formData.get('category') as Product['category'],
             status: formData.get('status') as Product['status'],
-            stock: stock,
+            stock,
             featured: formData.get('featured') === 'on',
             images: uploadedImageUrls.length > 0 ? uploadedImageUrls : ['https://placehold.co/600x600'],
         };
-        
-        let apiError: any;
 
+        let response;
         if (editingProduct) {
             // Update existing product
-            const { error } = await supabase
+            response = await supabase
                 .from('products')
                 .update(productPayload)
-                .eq('id', editingProduct.id);
-            apiError = error;
+                .eq('id', editingProduct.id)
+                .select()
+                .single();
         } else {
-            // Insert new product - `insert` expects an array of objects
-            const { error } = await supabase
+            // Insert new product
+            response = await supabase
                 .from('products')
-                .insert([productPayload]);
-            apiError = error;
+                .insert(productPayload)
+                .select()
+                .single();
         }
+
+        const { error: apiError } = response;
 
         if (apiError) {
             throw apiError;
@@ -209,7 +215,8 @@ export default function DashboardProductsPage() {
 
     } catch (error: any) {
         console.error("Erro detalhado ao salvar produto:", error);
-        toast({ title: "Erro ao salvar produto", description: error.message || "Ocorreu um erro desconhecido.", variant: "destructive" });
+        const errorMessage = error.message || "Ocorreu um erro desconhecido. Verifique se todos os campos estão preenchidos corretamente.";
+        toast({ title: "Erro ao salvar produto", description: errorMessage, variant: "destructive" });
     } finally {
         setIsSubmitting(false);
     }
@@ -452,4 +459,5 @@ export default function DashboardProductsPage() {
       </Sheet>
     </>
   )
-}
+
+    
