@@ -51,10 +51,13 @@ export default function DashboardOrdersPage() {
   };
   
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('pt-BR', {
+    const [year, month, day] = dateString.split('-').map(Number);
+    const date = new Date(Date.UTC(year, month - 1, day));
+    return date.toLocaleDateString('pt-BR', {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',
+      timeZone: 'UTC',
     });
   }
 
