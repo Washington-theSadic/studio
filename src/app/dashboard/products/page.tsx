@@ -219,7 +219,7 @@ export default function DashboardProductsPage() {
             price: price,
             sale_price: sale_price,
             category: formState.category,
-            condition: formState.condition,
+            condition: formState.condition || 'Novo',
             status: formState.status,
             stock: stock,
             featured: formState.featured,
@@ -377,7 +377,7 @@ export default function DashboardProductsPage() {
         </CardContent>
         <CardFooter>
           <div className="text-xs text-muted-foreground">
-            Mostrando <strong>1-{products.length}</strong> de <strong>{products.length}</strong> produtos
+            Mostrando <strong>{products.length}</strong> {products.length === 1 ? 'produto' : 'produtos'}
           </div>
         </CardFooter>
       </Card>
