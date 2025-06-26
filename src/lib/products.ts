@@ -8,6 +8,8 @@ export type Product = {
   images: string[];
   category: 'Apple' | 'Android' | 'Minoxidil' | 'Acessórios';
   featured?: boolean;
+  status: 'ativo' | 'rascunho';
+  stock: number;
 };
 
 export const products: Product[] = [
@@ -24,6 +26,8 @@ export const products: Product[] = [
     ],
     category: 'Apple',
     featured: true,
+    status: 'ativo',
+    stock: 15,
   },
   {
     id: '2',
@@ -38,6 +42,8 @@ export const products: Product[] = [
     ],
     category: 'Android',
     featured: true,
+    status: 'ativo',
+    stock: 10,
   },
   {
     id: '3',
@@ -51,6 +57,8 @@ export const products: Product[] = [
     ],
     category: 'Minoxidil',
     featured: true,
+    status: 'ativo',
+    stock: 50,
   },
   {
     id: '4',
@@ -63,6 +71,8 @@ export const products: Product[] = [
     ],
     category: 'Acessórios',
     featured: true,
+    status: 'ativo',
+    stock: 30,
   },
   {
     id: '5',
@@ -75,6 +85,9 @@ export const products: Product[] = [
       'https://placehold.co/600x600',
     ],
     category: 'Apple',
+    featured: false,
+    status: 'ativo',
+    stock: 22,
   },
   {
     id: '6',
@@ -86,6 +99,9 @@ export const products: Product[] = [
       'https://placehold.co/600x600',
     ],
     category: 'Android',
+    featured: false,
+    status: 'rascunho',
+    stock: 5,
   },
   {
     id: '7',
@@ -98,5 +114,8 @@ export const products: Product[] = [
       'https://placehold.co/600x600',
     ],
     category: 'Acessórios',
+    featured: false,
+    status: 'ativo',
+    stock: 100,
   },
 ];
