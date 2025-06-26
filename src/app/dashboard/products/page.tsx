@@ -179,6 +179,8 @@ export default function DashboardProductsPage() {
             featured: formData.get('featured') === 'on',
             images: uploadedImageUrls.length > 0 ? uploadedImageUrls : ['https://placehold.co/600x600'],
         };
+        
+        console.log("Enviando para o Supabase:", productPayload);
 
         let apiError;
         if (editingProduct) {
@@ -205,7 +207,7 @@ export default function DashboardProductsPage() {
         setFormImages([]);
 
     } catch (error: any) {
-        console.error("Erro detalhado ao salvar produto:", error);
+        console.error("Erro detalhado ao salvar produto:", JSON.stringify(error, null, 2));
         const errorMessage = error.message || "Ocorreu um erro desconhecido. Verifique as permissões de acesso (RLS) no Supabase e se todos os campos estão preenchidos corretamente.";
         toast({ title: "Erro ao salvar produto", description: errorMessage, variant: "destructive" });
     } finally {
