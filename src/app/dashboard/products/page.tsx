@@ -43,12 +43,31 @@ import { Switch } from "@/components/ui/switch"
 import { useToast } from "@/hooks/use-toast"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 
+type FormState = Omit<Product, 'id' | 'created_at' | 'images'> & { images: (string | File)[] };
+
+const getInitialFormState = (): FormState => ({
+  name: '',
+  description: '',
+  long_description: '',
+  price: 0.0,
+  sale_price: undefined,
+  category: 'Apple',
+  condition: 'Novo',
+  status: 'ativo',
+  stock: 0,
+  featured: false,
+  images: [],
+});
+
+
 export default function DashboardProductsPage() {
   const [products, setProducts] = React.useState<Product[]>([])
   const [loading, setLoading] = React.useState(true)
   const [isSheetOpen, setIsSheetOpen] = React.useState(false)
   const [editingProduct, setEditingProduct] = React.useState<Product | null>(null)
-  const [formImages, setFormImages] = React.useState<(string | File)[]>([])
+  
+  const [formState, setFormState] = React.useState<FormState>(getInitialFormState());
+  
   const [isSubmitting, setIsSubmitting] = React.useState(false)
   const { toast } = useToast();
 
@@ -67,17 +86,16 @@ export default function DashboardProductsPage() {
     fetchProducts();
   }, [fetchProducts]);
 
-  const handleEdit = (product: Product) => {
-    setEditingProduct(product)
-    setFormImages(product.images)
-    setIsSheetOpen(true)
-  }
-
-  const handleAddNew = () => {
-    setEditingProduct(null)
-    setFormImages([])
-    setIsSheetOpen(true)
-  }
+  const handleSheetOpen = (product: Product | null) => {
+    setEditingProduct(product);
+    if (product) {
+      const { id, created_at, ...productData } = product;
+      setFormState({ ...productData, images: product.images });
+    } else {
+      setFormState(getInitialFormState());
+    }
+    setIsSheetOpen(true);
+  };
   
   const handleDelete = async (productId: string) => {
     const productToDelete = products.find(p => p.id === productId);
@@ -86,7 +104,6 @@ export default function DashboardProductsPage() {
         return;
     }
 
-    // First, try to delete images from storage
     if (productToDelete.images && productToDelete.images.length > 0) {
         const supabaseImageUrls = productToDelete.images.filter(url => url && url.includes('supabase.co'));
         
@@ -95,14 +112,14 @@ export default function DashboardProductsPage() {
                 try {
                     const urlObject = new URL(url);
                     const pathSegments = urlObject.pathname.split('/');
-                    const bucketIndex = pathSegments.indexOf('public-images');
-                    if (bucketIndex === -1) return '';
+                    const bucketIndex = pathSegments.findIndex(segment => segment === 'public-images');
+                    if (bucketIndex === -1 || bucketIndex + 1 >= pathSegments.length) return '';
                     return pathSegments.slice(bucketIndex + 1).join('/');
                 } catch (e) {
                     console.error('URL inválida no array de imagens:', url);
                     return '';
                 }
-            }).filter(Boolean); // remove any empty strings from failed parsing
+            }).filter(Boolean);
 
             if (filePaths.length > 0) {
                 console.log("Tentando deletar os seguintes arquivos do storage:", filePaths);
@@ -117,13 +134,12 @@ export default function DashboardProductsPage() {
                         description: `O produto não pode ser deletado porque suas imagens não foram removidas do storage. Erro: ${imageError.message}`, 
                         variant: "destructive" 
                     });
-                    return; // Stop execution if image deletion fails
+                    return;
                 }
             }
         }
     }
 
-    // If image deletion was successful (or not needed), delete the product from the database
     const { error: dbError } = await supabase.from('products').delete().eq('id', productId);
     
     if (dbError) {
@@ -138,24 +154,27 @@ export default function DashboardProductsPage() {
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (files) {
-      setFormImages(prev => [...prev, ...Array.from(files)]);
+      setFormState(prev => ({ ...prev, images: [...prev.images, ...Array.from(files)] }));
     }
   };
 
   const handleImageRemove = (indexToRemove: number) => {
-    setFormImages(prev => prev.filter((_, index) => index !== indexToRemove));
+    setFormState(prev => ({ ...prev, images: prev.images.filter((_, index) => index !== indexToRemove) }));
   };
-
+  
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormState(prev => ({...prev, [name]: value}));
+  };
 
   const handleFormSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setIsSubmitting(true);
 
     try {
-        const formData = new FormData(event.currentTarget);
         const uploadedImageUrls: string[] = [];
 
-        for (const img of formImages) {
+        for (const img of formState.images) {
             if (typeof img === 'string') {
                 uploadedImageUrls.push(img);
             } else {
@@ -177,33 +196,35 @@ export default function DashboardProductsPage() {
             }
         }
 
-        const priceStr = formData.get('price') as string;
-        const salePriceStr = formData.get('sale_price') as string;
-        const stockStr = formData.get('stock') as string;
-
-        const price = parseFloat(priceStr);
-        const stock = parseInt(stockStr, 10);
+        const price = parseFloat(String(formState.price || '0'));
+        const stock = parseInt(String(formState.stock || '0'), 10);
         
         if (isNaN(price) || isNaN(stock)) {
             throw new Error("Preço e Estoque devem ser números válidos.");
         }
         
+        const salePriceStr = String(formState.sale_price || '');
         const sale_price = (salePriceStr && !isNaN(parseFloat(salePriceStr))) ? parseFloat(salePriceStr) : null;
 
         const productPayload = {
-            name: formData.get('name') as string,
-            description: formData.get('description') as string,
-            long_description: formData.get('long_description') as string,
-            price,
-            sale_price,
-            category: formData.get('category') as Product['category'],
-            condition: formData.get('condition') as Product['condition'],
-            status: formData.get('status') as Product['status'],
-            stock,
-            featured: formData.get('featured') === 'on',
+            name: formState.name,
+            description: formState.description,
+            long_description: formState.long_description,
+            price: price,
+            sale_price: sale_price,
+            category: formState.category,
+            condition: formState.condition,
+            status: formState.status,
+            stock: stock,
+            featured: formState.featured,
             images: uploadedImageUrls.length > 0 ? uploadedImageUrls : ['https://placehold.co/600x600'],
         };
         
+        // Supabase expects 'null' for empty optional fields, not 'undefined'
+        if (productPayload.sale_price === null) {
+          delete (productPayload as any).sale_price;
+        }
+
         console.log("Enviando para o Supabase:", productPayload);
 
         let apiError;
@@ -228,8 +249,6 @@ export default function DashboardProductsPage() {
         toast({ title: `Produto ${editingProduct ? 'Atualizado' : 'Adicionado'}!`, description: `${productPayload.name} foi salvo com sucesso.` });
         fetchProducts();
         setIsSheetOpen(false);
-        setEditingProduct(null);
-        setFormImages([]);
 
     } catch (error: any) {
         console.error("Erro detalhado ao salvar produto:", JSON.stringify(error, null, 2));
@@ -247,7 +266,7 @@ export default function DashboardProductsPage() {
   return (
     <>
       <div className="flex items-center justify-end gap-2">
-        <Button size="sm" className="h-8 gap-1" onClick={handleAddNew}>
+        <Button size="sm" className="h-8 gap-1" onClick={() => handleSheetOpen(null)}>
           <PlusCircle className="h-3.5 w-3.5" />
           <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
             Adicionar Produto
@@ -321,12 +340,15 @@ export default function DashboardProductsPage() {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Ações</DropdownMenuLabel>
-                        <DropdownMenuItem onClick={() => handleEdit(product)}>Editar</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleSheetOpen(product)}>Editar</DropdownMenuItem>
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
-                            <Button variant="ghost" className="w-full justify-start text-sm font-normal px-2 py-1.5 text-red-500 hover:text-red-600">
-                              Deletar
-                            </Button>
+                             <Button
+                                variant="ghost"
+                                className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 w-full justify-start font-normal text-destructive hover:bg-destructive/10"
+                              >
+                                Deletar
+                              </Button>
                           </AlertDialogTrigger>
                           <AlertDialogContent>
                             <AlertDialogHeader>
@@ -371,20 +393,20 @@ export default function DashboardProductsPage() {
             <div className="grid gap-4 py-4 max-h-[80vh] overflow-y-auto px-1">
               <div className="grid gap-2">
                 <Label htmlFor="name">Nome</Label>
-                <Input id="name" name="name" defaultValue={editingProduct?.name} required disabled={isSubmitting} />
+                <Input id="name" name="name" value={formState.name || ''} onChange={handleInputChange} required disabled={isSubmitting} />
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="description">Descrição Curta</Label>
-                <Textarea id="description" name="description" defaultValue={editingProduct?.description} required disabled={isSubmitting} />
+                <Textarea id="description" name="description" value={formState.description || ''} onChange={handleInputChange} required disabled={isSubmitting} />
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="long_description">Descrição Longa</Label>
-                <Textarea id="long_description" name="long_description" rows={5} defaultValue={editingProduct?.long_description} required disabled={isSubmitting} />
+                <Textarea id="long_description" name="long_description" rows={5} value={formState.long_description || ''} onChange={handleInputChange} required disabled={isSubmitting} />
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="images">Imagens</Label>
                 <div className="grid grid-cols-3 gap-4 mb-2">
-                  {formImages.map((img, index) => {
+                  {formState.images.map((img, index) => {
                     const src = typeof img === 'string' ? img : URL.createObjectURL(img);
                     return (
                       <div key={index} className="relative aspect-square">
@@ -421,17 +443,17 @@ export default function DashboardProductsPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
                   <Label htmlFor="price">Preço</Label>
-                  <Input id="price" name="price" type="number" step="0.01" defaultValue={editingProduct?.price} required disabled={isSubmitting} />
+                  <Input id="price" name="price" type="number" step="0.01" value={formState.price || ''} onChange={handleInputChange} required disabled={isSubmitting} />
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="sale_price">Preço Promocional (opcional)</Label>
-                  <Input id="sale_price" name="sale_price" type="number" step="0.01" defaultValue={editingProduct?.sale_price || ''} disabled={isSubmitting} />
+                  <Input id="sale_price" name="sale_price" type="number" step="0.01" value={formState.sale_price || ''} onChange={handleInputChange} disabled={isSubmitting} />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
                   <Label htmlFor="category">Categoria</Label>
-                  <Select name="category" defaultValue={editingProduct?.category} required disabled={isSubmitting}>
+                  <Select name="category" value={formState.category} onValueChange={(value) => setFormState(p => ({...p, category: value as Product['category']}))} required disabled={isSubmitting}>
                     <SelectTrigger>
                       <SelectValue placeholder="Selecione uma categoria" />
                     </SelectTrigger>
@@ -445,7 +467,7 @@ export default function DashboardProductsPage() {
                 </div>
                 <div className="grid gap-2">
                     <Label htmlFor="condition">Condição</Label>
-                    <Select name="condition" defaultValue={editingProduct?.condition || 'Novo'} required disabled={isSubmitting}>
+                    <Select name="condition" value={formState.condition} onValueChange={(value) => setFormState(p => ({...p, condition: value as Product['condition']}))} required disabled={isSubmitting}>
                         <SelectTrigger>
                             <SelectValue placeholder="Selecione a condição" />
                         </SelectTrigger>
@@ -460,11 +482,11 @@ export default function DashboardProductsPage() {
               <div className="grid grid-cols-2 gap-4">
                  <div className="grid gap-2">
                     <Label htmlFor="stock">Estoque</Label>
-                    <Input id="stock" name="stock" type="number" defaultValue={editingProduct?.stock} required disabled={isSubmitting} />
+                    <Input id="stock" name="stock" type="number" value={formState.stock || ''} onChange={handleInputChange} required disabled={isSubmitting} />
                 </div>
                  <div className="grid gap-2">
                     <Label htmlFor="status">Status</Label>
-                    <Select name="status" defaultValue={editingProduct?.status || 'ativo'} required disabled={isSubmitting}>
+                    <Select name="status" value={formState.status} onValueChange={(value) => setFormState(p => ({...p, status: value as Product['status']}))} required disabled={isSubmitting}>
                       <SelectTrigger>
                         <SelectValue placeholder="Selecione um status" />
                       </SelectTrigger>
@@ -476,7 +498,7 @@ export default function DashboardProductsPage() {
                   </div>
               </div>
               <div className="flex items-center space-x-2 pt-2">
-                <Switch id="featured" name="featured" defaultChecked={editingProduct?.featured} disabled={isSubmitting} />
+                <Switch id="featured" name="featured" checked={formState.featured} onCheckedChange={(checked) => setFormState(p => ({...p, featured: checked}))} disabled={isSubmitting} />
                 <Label htmlFor="featured">Produto em Destaque?</Label>
               </div>
             </div>
@@ -495,3 +517,5 @@ export default function DashboardProductsPage() {
     </>
   )
 }
+
+    
