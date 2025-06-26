@@ -144,7 +144,9 @@ export default function DashboardProductsPage() {
                     .from('public-images')
                     .upload(fileName, file);
 
-                if (uploadError) throw uploadError;
+                if (uploadError) {
+                    throw new Error(`Falha no upload da imagem: ${uploadError.message}. Verifique as políticas de armazenamento (RLS) no Supabase.`);
+                }
 
                 const { data: { publicUrl } } = supabase.storage
                     .from('public-images')
@@ -197,7 +199,7 @@ export default function DashboardProductsPage() {
         }
 
         if (apiError) {
-            throw apiError;
+            throw new Error(`Falha ao salvar no banco de dados: ${apiError.message}`);
         }
 
         toast({ title: `Produto ${editingProduct ? 'Atualizado' : 'Adicionado'}!`, description: `${productPayload.name} foi salvo com sucesso.` });
