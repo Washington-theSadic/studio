@@ -146,7 +146,7 @@ export default function DashboardProductsPage() {
                   </TableCell>
                   <TableCell className="font-medium">{product.name}</TableCell>
                   <TableCell>
-                    <Badge variant={product.status === 'ativo' ? 'default' : 'secondary'} className={product.status === 'ativo' ? 'bg-green-600' : ''}>
+                    <Badge variant={product.status === 'ativo' ? 'default' : 'secondary'}>
                       {product.status}
                     </Badge>
                   </TableCell>

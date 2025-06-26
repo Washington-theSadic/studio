@@ -16,11 +16,11 @@ import { ArrowLeft } from 'lucide-react';
 type Status = Order['status'];
 
 const statusColors: Record<Status, string> = {
-  Pendente: 'bg-yellow-500 hover:bg-yellow-600',
-  Processando: 'bg-blue-500 hover:bg-blue-600',
-  Enviado: 'bg-indigo-500 hover:bg-indigo-600',
-  Entregue: 'bg-green-500 hover:bg-green-600',
-  Cancelado: 'bg-red-500 hover:bg-red-600',
+  Pendente: 'bg-yellow-500 text-black hover:bg-yellow-600',
+  Processando: 'bg-blue-500 text-white hover:bg-blue-600',
+  Enviado: 'bg-indigo-500 text-white hover:bg-indigo-600',
+  Entregue: 'bg-green-500 text-white hover:bg-green-600',
+  Cancelado: 'bg-destructive text-destructive-foreground hover:bg-destructive/90',
 };
 
 export default function OrderDetailPage() {
@@ -123,7 +123,7 @@ export default function OrderDetailPage() {
               <CardTitle>Status do Pedido</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-                <Badge className={cn('text-white text-base w-full justify-center', statusColors[currentStatus])} variant="default">
+                <Badge className={cn('text-base w-full justify-center border-transparent', statusColors[currentStatus])}>
                     {currentStatus}
                 </Badge>
                 <div className="grid gap-2">
