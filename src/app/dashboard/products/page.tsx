@@ -111,18 +111,24 @@ export default function DashboardProductsPage() {
 
     try {
         if (productToDelete.images && productToDelete.images.length > 0) {
-            const supabaseImageUrls = productToDelete.images.filter(url => url && url.includes('supabase.co'));
+            const supabaseImageUrls = productToDelete.images.filter(url => url && url.includes(supabase.storage.from('public-images').getPublicUrl('').data.publicUrl.split('/public/')[0]));
             
             if (supabaseImageUrls.length > 0) {
                 const filePaths = supabaseImageUrls.map(url => {
                     try {
                         const urlObject = new URL(url);
-                        const pathSegments = urlObject.pathname.split('/');
-                        const bucketIndex = pathSegments.findIndex(segment => segment === 'public-images');
-                        if (bucketIndex === -1 || bucketIndex + 1 >= pathSegments.length) return '';
-                        return pathSegments.slice(bucketIndex + 1).join('/');
+                        // A extração do path pode variar dependendo da estrutura da URL do Supabase.
+                        // Ajuste se o seu path for diferente de /storage/v1/object/public/public-images/...
+                        const pathName = urlObject.pathname;
+                        const publicImagesPrefix = '/public/public-images/';
+                        const startIndex = pathName.indexOf(publicImagesPrefix);
+
+                        if (startIndex !== -1) {
+                            return decodeURIComponent(pathName.substring(startIndex + publicImagesPrefix.length));
+                        }
+                        return '';
                     } catch (e) {
-                        console.error('URL inválida no array de imagens, pulando:', url);
+                        console.error('URL de imagem inválida, pulando:', url);
                         return '';
                     }
                 }).filter(Boolean);
@@ -134,7 +140,7 @@ export default function DashboardProductsPage() {
                         .remove(filePaths);
                     
                     if (imageError) {
-                        throw new Error(`Falha ao remover imagens do armazenamento: ${imageError.message}`);
+                        throw new Error(`Falha ao remover imagens do armazenamento: ${imageError.message}. Verifique as políticas RLS do Storage.`);
                     }
                 }
             }
@@ -143,6 +149,7 @@ export default function DashboardProductsPage() {
         const { error: dbError } = await supabase.from('products').delete().eq('id', productId);
         
         if (dbError) {
+            // Este erro pode acontecer se as imagens foram removidas mas o produto não.
             throw new Error(`As imagens podem ter sido removidas, mas o produto não foi deletado do banco de dados. Erro: ${dbError.message}`);
         }
 
@@ -223,7 +230,7 @@ export default function DashboardProductsPage() {
             status: formState.status,
             stock: stock,
             featured: formState.featured,
-            images: uploadedImageUrls.length > 0 ? uploadedImageUrls : ['https://placehold.co/600x600'],
+            images: uploadedImageUrls.length > 0 ? uploadedImageUrls : ['https://placehold.co/600x600.png'],
         };
         
         console.log("Enviando para o Supabase:", productPayload);
@@ -377,7 +384,7 @@ export default function DashboardProductsPage() {
         </CardContent>
         <CardFooter>
           <div className="text-xs text-muted-foreground">
-            Mostrando <strong>{products.length}</strong> {products.length === 1 ? 'produto' : 'produtos'}
+            Mostrando <strong>{products.length}</strong> de <strong>{products.length}</strong> {products.length === 1 ? 'produto' : 'produtos'}
           </div>
         </CardFooter>
       </Card>
