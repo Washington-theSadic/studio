@@ -1,10 +1,9 @@
-
 "use client"
 
 import * as React from "react"
 import Image from "next/image"
 import { products as initialProducts, Product } from "@/lib/products"
-import { PlusCircle, MoreHorizontal } from "lucide-react"
+import { PlusCircle, MoreHorizontal, X } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -45,15 +44,18 @@ export default function DashboardProductsPage() {
   const [products, setProducts] = React.useState<Product[]>(initialProducts)
   const [isSheetOpen, setIsSheetOpen] = React.useState(false)
   const [editingProduct, setEditingProduct] = React.useState<Product | null>(null)
+  const [formImages, setFormImages] = React.useState<string[]>([])
   const { toast } = useToast();
 
   const handleEdit = (product: Product) => {
     setEditingProduct(product)
+    setFormImages(product.images)
     setIsSheetOpen(true)
   }
 
   const handleAddNew = () => {
     setEditingProduct(null)
+    setFormImages([])
     setIsSheetOpen(true)
   }
   
@@ -64,6 +66,42 @@ export default function DashboardProductsPage() {
       description: "O produto foi removido com sucesso.",
     });
   }
+
+  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (files) {
+      const filePromises = Array.from(files).map(file => {
+        return new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            if (reader.result) {
+              resolve(reader.result as string);
+            } else {
+              reject(new Error("Failed to read file"));
+            }
+          };
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+      });
+
+      Promise.all(filePromises).then(newImages => {
+        setFormImages(prev => [...prev, ...newImages]);
+      }).catch(error => {
+        console.error("Error uploading images:", error);
+        toast({
+          title: "Erro ao carregar imagem",
+          description: "Houve um problema ao processar as imagens.",
+          variant: "destructive"
+        })
+      });
+    }
+  };
+
+  const handleImageRemove = (indexToRemove: number) => {
+    setFormImages(prev => prev.filter((_, index) => index !== indexToRemove));
+  };
+
 
   const handleFormSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -79,7 +117,7 @@ export default function DashboardProductsPage() {
       status: formData.get('status') as Product['status'],
       stock: parseInt(formData.get('stock') as string, 10),
       featured: formData.get('featured') === 'on',
-      images: editingProduct?.images || ['https://placehold.co/600x600'],
+      images: formImages.length > 0 ? formImages : ['https://placehold.co/600x600'],
     };
 
     if (editingProduct) {
@@ -92,6 +130,7 @@ export default function DashboardProductsPage() {
     
     setIsSheetOpen(false);
     setEditingProduct(null);
+    setFormImages([]);
   };
   
   const formatPrice = (price: number) => {
@@ -224,6 +263,38 @@ export default function DashboardProductsPage() {
               <div className="grid gap-2">
                 <Label htmlFor="longDescription">Descrição Longa</Label>
                 <Textarea id="longDescription" name="longDescription" rows={5} defaultValue={editingProduct?.longDescription} required />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="images">Imagens</Label>
+                <div className="grid grid-cols-3 gap-4 mb-2">
+                  {formImages.map((src, index) => (
+                    <div key={index} className="relative aspect-square">
+                      <Image
+                        src={src}
+                        alt={`Imagem do produto ${index + 1}`}
+                        fill
+                        className="rounded-md object-cover"
+                      />
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="icon"
+                        className="absolute top-1 right-1 h-6 w-6 rounded-full"
+                        onClick={() => handleImageRemove(index)}
+                      >
+                        <X className="h-4 w-4" />
+                        <span className="sr-only">Remover imagem</span>
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+                <Input
+                  id="images"
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={handleImageUpload}
+                />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
