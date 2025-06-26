@@ -157,17 +157,25 @@ export default function DashboardProductsPage() {
 
         const priceStr = formData.get('price') as string;
         const salePriceStr = formData.get('sale_price') as string;
+        const stockStr = formData.get('stock') as string;
 
-        // Common data for both insert and update
+        const price = parseFloat(priceStr);
+        const stock = parseInt(stockStr, 10);
+        const sale_price = (salePriceStr && !isNaN(parseFloat(salePriceStr))) ? parseFloat(salePriceStr) : null;
+
+        if (isNaN(price) || isNaN(stock)) {
+            throw new Error("Preço e Estoque devem ser números válidos.");
+        }
+
         const productPayload = {
             name: formData.get('name') as string,
             description: formData.get('description') as string,
             long_description: formData.get('long_description') as string,
-            price: parseFloat(priceStr),
-            sale_price: salePriceStr ? parseFloat(salePriceStr) : null,
+            price: price,
+            sale_price: sale_price,
             category: formData.get('category') as Product['category'],
             status: formData.get('status') as Product['status'],
-            stock: parseInt(formData.get('stock') as string, 10),
+            stock: stock,
             featured: formData.get('featured') === 'on',
             images: uploadedImageUrls.length > 0 ? uploadedImageUrls : ['https://placehold.co/600x600'],
         };
@@ -182,10 +190,10 @@ export default function DashboardProductsPage() {
                 .eq('id', editingProduct.id);
             apiError = error;
         } else {
-            // Insert new product
+            // Insert new product - `insert` expects an array of objects
             const { error } = await supabase
                 .from('products')
-                .insert(productPayload);
+                .insert([productPayload]);
             apiError = error;
         }
 
