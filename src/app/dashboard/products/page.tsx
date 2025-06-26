@@ -114,17 +114,26 @@ export default function DashboardProductsPage() {
         if (productToDelete.images && productToDelete.images.length > 0) {
             const filePaths = productToDelete.images
                 .map(url => {
-                    try {
-                        // A URL precisa ser válida e do bucket correto. Placeholders (que não vêm do Supabase) são ignorados.
-                        if (url && url.startsWith(supabaseUrl)) {
-                            const path = new URL(url).pathname.split('/public-images/')[1];
-                            return path ? decodeURIComponent(path) : null;
+                    // A URL precisa ser válida e do bucket correto.
+                    // Somente tenta extrair o path se a URL for do Supabase Storage.
+                    if (url && url.startsWith(supabaseUrl)) {
+                        try {
+                            const urlObject = new URL(url);
+                            // O path esperado é algo como /storage/v1/object/public/public-images/image.png
+                            // Queremos extrair o que vem depois de 'public-images/'
+                            const pathSegments = urlObject.pathname.split('/');
+                            const bucketNameIndex = pathSegments.indexOf('public-images');
+                            if (bucketNameIndex !== -1 && bucketNameIndex + 1 < pathSegments.length) {
+                                const filePath = pathSegments.slice(bucketNameIndex + 1).join('/');
+                                return decodeURIComponent(filePath);
+                            }
+                        } catch (e) {
+                            console.error('URL de imagem inválida, pulando a remoção:', url);
+                            return null;
                         }
-                        return null; // Ignora placeholders ou URLs externas
-                    } catch (e) {
-                        console.error('URL de imagem inválida, pulando a remoção:', url);
-                        return null;
                     }
+                    // Ignora placeholders ou URLs externas que não são do Supabase
+                    return null;
                 })
                 .filter((path): path is string => path !== null);
 
@@ -204,15 +213,26 @@ export default function DashboardProductsPage() {
             }
         }
 
-        const price = parseFloat(String(formState.price || '0'));
-        const stock = parseInt(String(formState.stock || '0'), 10);
-        
-        if (isNaN(price) || isNaN(stock)) {
-            throw new Error("Preço e Estoque devem ser números válidos.");
+        // Validar e converter campos numéricos de forma robusta
+        const price = Number(formState.price);
+        if (isNaN(price)) {
+            throw new Error("O preço fornecido não é um número válido.");
         }
         
-        const salePriceStr = String(formState.sale_price || '');
-        const sale_price = (salePriceStr && !isNaN(parseFloat(salePriceStr))) ? parseFloat(salePriceStr) : null;
+        const stock = Number(formState.stock);
+        if (isNaN(stock) || !Number.isInteger(stock)) {
+            throw new Error("O estoque fornecido não é um número inteiro válido.");
+        }
+        
+        let sale_price: number | null = null;
+        if (formState.sale_price !== undefined && formState.sale_price !== null && String(formState.sale_price).trim() !== '') {
+            const parsedSalePrice = Number(formState.sale_price);
+            if (!isNaN(parsedSalePrice)) {
+                sale_price = parsedSalePrice;
+            } else {
+                 throw new Error("O preço promocional fornecido não é um número válido.");
+            }
+        }
 
         const productPayload = {
             name: formState.name,
