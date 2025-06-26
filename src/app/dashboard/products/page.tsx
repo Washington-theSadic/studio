@@ -90,8 +90,13 @@ export default function DashboardProductsPage() {
     setEditingProduct(product);
     if (product) {
       const { id, created_at, ...productData } = product;
-      // Use initial state as a base to ensure all fields are present, especially `condition`
-      setFormState({ ...getInitialFormState(), ...productData, images: product.images });
+      // When editing, ensure 'condition' has a fallback value to prevent issues with older products
+      setFormState({ 
+        ...getInitialFormState(), 
+        ...productData, 
+        images: product.images,
+        condition: product.condition || 'Novo',
+      });
     } else {
       setFormState(getInitialFormState());
     }
@@ -113,7 +118,6 @@ export default function DashboardProductsPage() {
                 try {
                     const urlObject = new URL(url);
                     const pathSegments = urlObject.pathname.split('/');
-                    // Adjust to find the correct bucket name in the path
                     const bucketIndex = pathSegments.findIndex(segment => segment === 'public-images');
                     if (bucketIndex === -1 || bucketIndex + 1 >= pathSegments.length) return '';
                     return pathSegments.slice(bucketIndex + 1).join('/');
@@ -133,10 +137,10 @@ export default function DashboardProductsPage() {
                     console.error("Erro ao deletar imagens do storage:", imageError);
                     toast({ 
                         title: "Erro ao Deletar Imagens", 
-                        description: `O produto não pode ser deletado porque suas imagens não foram removidas do storage. Erro: ${imageError.message}`, 
+                        description: `O produto não pode ser deletado porque suas imagens não foram removidas. Erro: ${imageError.message}`, 
                         variant: "destructive" 
                     });
-                    return;
+                    return; // Stop the process if image deletion fails
                 }
             }
         }
@@ -222,11 +226,6 @@ export default function DashboardProductsPage() {
             images: uploadedImageUrls.length > 0 ? uploadedImageUrls : ['https://placehold.co/600x600'],
         };
         
-        // Supabase expects 'null' for empty optional fields, not 'undefined'
-        if (productPayload.sale_price === null) {
-          delete (productPayload as any).sale_price;
-        }
-
         console.log("Enviando para o Supabase:", productPayload);
 
         let apiError;
