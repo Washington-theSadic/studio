@@ -1,6 +1,6 @@
 "use client";
 
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { products, Product } from '@/lib/products';
 import { Button } from '@/components/ui/button';
@@ -12,6 +12,7 @@ import { ShoppingCart } from 'lucide-react';
 
 export default function ProductDetailPage() {
   const params = useParams();
+  const router = useRouter();
   const { id } = params;
   const { addToCart } = useCart();
   
@@ -23,6 +24,11 @@ export default function ProductDetailPage() {
 
   const formatPrice = (price: number) => {
     return price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  };
+
+  const handleBuyNow = () => {
+    addToCart(product, 1, false);
+    router.push('/cart');
   };
 
   return (
@@ -69,10 +75,15 @@ export default function ProductDetailPage() {
             <p>{product.longDescription}</p>
           </div>
 
-          <Button size="lg" className="w-full md:w-auto" onClick={() => addToCart(product)}>
-            <ShoppingCart className="mr-2 h-5 w-5" />
-            Comprar
-          </Button>
+          <div className="flex flex-col sm:flex-row gap-4 mt-4">
+             <Button size="lg" className="flex-1" onClick={() => addToCart(product)}>
+                <ShoppingCart className="mr-2 h-5 w-5" />
+                Adicionar ao Carrinho
+             </Button>
+             <Button size="lg" variant="outline" className="flex-1" onClick={handleBuyNow}>
+                Comprar Agora
+             </Button>
+          </div>
         </div>
       </div>
     </div>

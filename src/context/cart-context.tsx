@@ -11,7 +11,7 @@ export type CartItem = {
 
 type CartContextType = {
   cartItems: CartItem[];
-  addToCart: (product: Product, quantity?: number) => void;
+  addToCart: (product: Product, quantity?: number, showToast?: boolean) => void;
   removeFromCart: (productId: string) => void;
   updateQuantity: (productId: string, quantity: number) => void;
   clearCart: () => void;
@@ -36,7 +36,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     localStorage.setItem('cart', JSON.stringify(cartItems));
   }, [cartItems]);
 
-  const addToCart = (product: Product, quantity: number = 1) => {
+  const addToCart = (product: Product, quantity: number = 1, showToast: boolean = true) => {
     setCartItems(prevItems => {
       const existingItem = prevItems.find(item => item.product.id === product.id);
       if (existingItem) {
@@ -48,10 +48,12 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       }
       return [...prevItems, { product, quantity }];
     });
-    toast({
-      title: "Produto adicionado!",
-      description: `${product.name} foi adicionado ao seu carrinho.`,
-    });
+    if (showToast) {
+      toast({
+        title: "Produto adicionado!",
+        description: `${product.name} foi adicionado ao seu carrinho.`,
+      });
+    }
   };
 
   const removeFromCart = (productId: string) => {
