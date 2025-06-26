@@ -33,12 +33,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       const supabaseUser = session?.user;
-      if (supabaseUser) {
-        const userRole = supabaseUser.email === ADMIN_EMAIL ? 'admin' : 'user';
+      if (supabaseUser && supabaseUser.email) {
+        const userRole = supabaseUser.email.toLowerCase() === ADMIN_EMAIL ? 'admin' : 'user';
         const user: User = {
           id: supabaseUser.id,
-          email: supabaseUser.email!,
-          name: supabaseUser.user_metadata.name || supabaseUser.email!,
+          email: supabaseUser.email,
+          name: supabaseUser.user_metadata.name || supabaseUser.email,
           role: userRole,
         };
         setCurrentUser(user);
