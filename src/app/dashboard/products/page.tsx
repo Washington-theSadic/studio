@@ -90,7 +90,8 @@ export default function DashboardProductsPage() {
     setEditingProduct(product);
     if (product) {
       const { id, created_at, ...productData } = product;
-      setFormState({ ...productData, images: product.images });
+      // Use initial state as a base to ensure all fields are present, especially `condition`
+      setFormState({ ...getInitialFormState(), ...productData, images: product.images });
     } else {
       setFormState(getInitialFormState());
     }
@@ -112,6 +113,7 @@ export default function DashboardProductsPage() {
                 try {
                     const urlObject = new URL(url);
                     const pathSegments = urlObject.pathname.split('/');
+                    // Adjust to find the correct bucket name in the path
                     const bucketIndex = pathSegments.findIndex(segment => segment === 'public-images');
                     if (bucketIndex === -1 || bucketIndex + 1 >= pathSegments.length) return '';
                     return pathSegments.slice(bucketIndex + 1).join('/');
@@ -517,5 +519,3 @@ export default function DashboardProductsPage() {
     </>
   )
 }
-
-    
