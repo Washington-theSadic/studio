@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/table"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { cn } from "@/lib/utils"
+import { useRouter } from "next/navigation"
 
 type Status = Order['status'];
 
@@ -38,6 +39,7 @@ const statusColors: Record<Status, string> = {
 export default function DashboardOrdersPage() {
   const [orders, setOrders] = React.useState<Order[]>(initialOrders);
   const [activeTab, setActiveTab] = React.useState<Status | "Todos">("Todos");
+  const router = useRouter();
 
   const filteredOrders = React.useMemo(() => {
     if (activeTab === "Todos") return orders;
@@ -118,8 +120,9 @@ export default function DashboardOrdersPage() {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuLabel>Ações</DropdownMenuLabel>
-                      <DropdownMenuItem>Ver Detalhes</DropdownMenuItem>
-                      <DropdownMenuItem>Ver Cliente</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => router.push(`/dashboard/orders/${order.id}`)}>
+                        Ver Detalhes
+                      </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </TableCell>
