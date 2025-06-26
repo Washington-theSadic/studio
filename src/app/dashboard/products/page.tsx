@@ -6,7 +6,7 @@ import Image from "next/image"
 import { PlusCircle, MoreHorizontal, X, Loader2 } from "lucide-react"
 
 import type { Product } from "@/lib/products"
-import { supabase } from "@/lib/supabase"
+import { supabase, supabaseUrl } from "@/lib/supabase"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -115,19 +115,18 @@ export default function DashboardProductsPage() {
             const filePaths = productToDelete.images
                 .map(url => {
                     try {
-                        if (!url || !url.includes('/public-images/')) return '';
-                        const urlObject = new URL(url);
-                        const pathParts = urlObject.pathname.split('/public-images/');
-                        if (pathParts.length > 1) {
-                            return decodeURIComponent(pathParts[1]);
+                        // A URL precisa ser válida e do bucket correto. Placeholders (que não vêm do Supabase) são ignorados.
+                        if (url && url.startsWith(supabaseUrl)) {
+                            const path = new URL(url).pathname.split('/public-images/')[1];
+                            return path ? decodeURIComponent(path) : null;
                         }
-                        return '';
+                        return null; // Ignora placeholders ou URLs externas
                     } catch (e) {
-                        console.error('URL de imagem inválida, pulando:', url);
-                        return '';
+                        console.error('URL de imagem inválida, pulando a remoção:', url);
+                        return null;
                     }
                 })
-                .filter(Boolean); // Filtra strings vazias ou nulas
+                .filter((path): path is string => path !== null);
 
             if (filePaths.length > 0) {
                 console.log("Tentando deletar os seguintes arquivos do storage:", filePaths);
@@ -136,7 +135,7 @@ export default function DashboardProductsPage() {
                     .remove(filePaths);
                 
                 if (imageError) {
-                    // Interrompe se a exclusão da imagem falhar
+                    // Interrompe se a exclusão da imagem falhar para evitar inconsistência
                     throw new Error(`Falha ao remover imagens do armazenamento: ${imageError.message}`);
                 }
             }
@@ -146,7 +145,6 @@ export default function DashboardProductsPage() {
         const { error: dbError } = await supabase.from('products').delete().eq('id', productId);
         
         if (dbError) {
-            // Este erro pode acontecer se as permissões RLS estiverem incorretas.
             throw new Error(`O produto não foi deletado do banco de dados. Erro: ${dbError.message}`);
         }
 
@@ -381,7 +379,7 @@ export default function DashboardProductsPage() {
         </CardContent>
         <CardFooter>
           <div className="text-xs text-muted-foreground">
-             Mostrando <strong>{products.length}</strong> {products.length === 1 ? 'produto' : 'produtos'}
+             Mostrando <strong>{products.length}</strong> de <strong>{products.length}</strong> {products.length === 1 ? 'produto' : 'produtos'}
           </div>
         </CardFooter>
       </Card>
