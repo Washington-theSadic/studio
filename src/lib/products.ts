@@ -7,6 +7,7 @@ export type Product = {
   sale_price?: number;
   images: string[];
   category: 'Apple' | 'Android' | 'Minoxidil' | 'Acessórios';
+  condition: 'Novo' | 'Lacrado' | 'Recondicionado';
   featured?: boolean;
   status: 'ativo' | 'rascunho';
   stock: number;

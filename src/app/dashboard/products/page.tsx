@@ -176,6 +176,7 @@ export default function DashboardProductsPage() {
             price,
             sale_price,
             category: formData.get('category') as Product['category'],
+            condition: formData.get('condition') as Product['condition'],
             status: formData.get('status') as Product['status'],
             stock,
             featured: formData.get('featured') === 'on',
@@ -194,11 +195,12 @@ export default function DashboardProductsPage() {
         } else {
             const { error } = await supabase
                 .from('products')
-                .insert(productPayload);
+                .insert([productPayload]);
             apiError = error;
         }
 
         if (apiError) {
+            console.error("Erro do Supabase:", apiError);
             throw new Error(`Falha ao salvar no banco de dados: ${apiError.message}`);
         }
 
@@ -252,6 +254,7 @@ export default function DashboardProductsPage() {
                 </TableHead>
                 <TableHead>Nome</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead>Condição</TableHead>
                 <TableHead className="hidden md:table-cell">Preço</TableHead>
                 <TableHead className="hidden md:table-cell">Estoque</TableHead>
                 <TableHead>
@@ -277,6 +280,9 @@ export default function DashboardProductsPage() {
                     <Badge variant={product.status === 'ativo' ? 'default' : 'secondary'}>
                       {product.status}
                     </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline">{product.condition}</Badge>
                   </TableCell>
                   <TableCell className="hidden md:table-cell">{formatPrice(product.price)}</TableCell>
                   <TableCell className="hidden md:table-cell">{product.stock}</TableCell>
@@ -416,19 +422,28 @@ export default function DashboardProductsPage() {
                     </SelectContent>
                   </Select>
                 </div>
+                <div className="grid gap-2">
+                    <Label htmlFor="condition">Condição</Label>
+                    <Select name="condition" defaultValue={editingProduct?.condition || 'Novo'} required disabled={isSubmitting}>
+                        <SelectTrigger>
+                            <SelectValue placeholder="Selecione a condição" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="Novo">Novo</SelectItem>
+                            <SelectItem value="Lacrado">Lacrado</SelectItem>
+                            <SelectItem value="Recondicionado">Recondicionado</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
                  <div className="grid gap-2">
                     <Label htmlFor="stock">Estoque</Label>
                     <Input id="stock" name="stock" type="number" defaultValue={editingProduct?.stock} required disabled={isSubmitting} />
                 </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                 <div className="flex items-center space-x-2">
-                    <Switch id="featured" name="featured" defaultChecked={editingProduct?.featured} disabled={isSubmitting} />
-                    <Label htmlFor="featured">Produto em Destaque?</Label>
-                  </div>
-                   <div className="grid gap-2">
+                 <div className="grid gap-2">
                     <Label htmlFor="status">Status</Label>
-                    <Select name="status" defaultValue={editingProduct?.status} required disabled={isSubmitting}>
+                    <Select name="status" defaultValue={editingProduct?.status || 'ativo'} required disabled={isSubmitting}>
                       <SelectTrigger>
                         <SelectValue placeholder="Selecione um status" />
                       </SelectTrigger>
@@ -438,6 +453,10 @@ export default function DashboardProductsPage() {
                       </SelectContent>
                     </Select>
                   </div>
+              </div>
+              <div className="flex items-center space-x-2 pt-2">
+                <Switch id="featured" name="featured" defaultChecked={editingProduct?.featured} disabled={isSubmitting} />
+                <Label htmlFor="featured">Produto em Destaque?</Label>
               </div>
             </div>
             <SheetFooter>

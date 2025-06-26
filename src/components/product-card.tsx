@@ -5,6 +5,7 @@ import Link from 'next/link';
 import type { Product } from '@/lib/products';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { ShoppingCart } from 'lucide-react';
 import { useCart } from '@/context/cart-context';
 
@@ -21,7 +22,10 @@ export default function ProductCard({ product }: ProductCardProps) {
 
   return (
     <Card className="group flex flex-col overflow-hidden h-full transition-all duration-300 bg-secondary/20 hover:bg-secondary/50 border-border/30 hover:border-brand">
-      <CardHeader className="p-0 border-b border-border/30">
+      <CardHeader className="p-0 border-b border-border/30 relative">
+        {product.condition && product.condition !== 'Novo' && (
+          <Badge className="absolute top-2 left-2 z-10" variant="secondary">{product.condition}</Badge>
+        )}
         <Link href={`/products/${product.id}`} className="block overflow-hidden">
           <div className="aspect-square relative w-full">
             <Image

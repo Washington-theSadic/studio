@@ -10,8 +10,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 import { useCart } from '@/context/cart-context';
-import { ShoppingCart, Loader2 } from 'lucide-react';
+import { ShoppingCart } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Badge } from '@/components/ui/badge';
 
 function ProductPageSkeleton() {
   return (
@@ -119,7 +120,12 @@ export default function ProductDetailPage() {
         </div>
         
         <div className="flex flex-col gap-6">
-          <span className="text-sm font-semibold text-brand">{product.category}</span>
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-semibold text-brand">{product.category}</span>
+            {product.condition && product.condition !== 'Novo' && (
+              <Badge variant="outline">{product.condition}</Badge>
+            )}
+          </div>
           <h1 className="text-4xl font-bold font-headline">{product.name}</h1>
           
           <div className="flex items-baseline gap-4">
