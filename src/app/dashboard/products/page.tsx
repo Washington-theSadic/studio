@@ -115,17 +115,15 @@ export default function DashboardProductsPage() {
             const bucketName = 'public-images';
             const filePaths = productToDelete.images
                 .map(url => {
-                    // Ignora URLs de placeholder que não são do nosso bucket
                     if (!url || !url.startsWith(supabaseUrl)) {
                         return null;
                     }
-                    // Extrai o path do arquivo da URL de forma robusta
                     try {
                         const urlObject = new URL(url);
-                        // O path no Supabase começa depois de /public/<bucket-name>/
                         const pathKey = `/storage/v1/object/public/${bucketName}/`;
                         if (urlObject.pathname.includes(pathKey)) {
-                            return urlObject.pathname.split(pathKey)[1];
+                            // Use decodeURIComponent para lidar com caracteres especiais (ex: espaços) nos nomes dos arquivos.
+                            return decodeURIComponent(urlObject.pathname.split(pathKey)[1]);
                         }
                     } catch (e) {
                          console.error('URL de imagem inválida, pulando a remoção:', url);
@@ -142,7 +140,6 @@ export default function DashboardProductsPage() {
                     .remove(filePaths);
                 
                 if (imageError) {
-                    // Interrompe se a exclusão da imagem falhar para evitar inconsistência
                     throw new Error(`Falha ao remover imagens do armazenamento: ${imageError.message}`);
                 }
             }
@@ -538,5 +535,3 @@ export default function DashboardProductsPage() {
     </>
   )
 }
-
-    
