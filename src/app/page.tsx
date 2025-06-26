@@ -23,7 +23,7 @@ export default function Home() {
             className="animate-fade-in-up" 
             style={{ animationDelay: '0.2s', animationFillMode: 'forwards', opacity: 0 }}
           >
-            <h1 className="text-4xl md:text-6xl font-bold font-heading bg-gradient-to-br from-gray-200 to-gray-500 bg-clip-text text-transparent">
+            <h1 className="text-4xl md:text-6xl font-bold font-heading bg-gradient-to-br from-primary to-brand bg-clip-text text-transparent">
               A melhor Loja de importados do Oeste
             </h1>
           </div>

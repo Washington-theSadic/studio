@@ -81,7 +81,7 @@ export default function CartPage() {
               </div>
               <div className="flex justify-between">
                 <span>Frete</span>
-                <span className="text-green-600 font-semibold">Grátis</span>
+                <span className="font-semibold text-brand">Grátis</span>
               </div>
               <Separator />
               <div className="flex justify-between font-bold text-lg">
