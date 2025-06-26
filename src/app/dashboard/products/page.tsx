@@ -110,51 +110,48 @@ export default function DashboardProductsPage() {
     }
 
     try {
+        // Passo 1: Remover imagens do armazenamento
         if (productToDelete.images && productToDelete.images.length > 0) {
-            const supabaseImageUrls = productToDelete.images.filter(url => url && url.includes(supabase.storage.from('public-images').getPublicUrl('').data.publicUrl.split('/public/')[0]));
-            
-            if (supabaseImageUrls.length > 0) {
-                const filePaths = supabaseImageUrls.map(url => {
+            const filePaths = productToDelete.images
+                .map(url => {
                     try {
+                        if (!url || !url.includes('/public-images/')) return '';
                         const urlObject = new URL(url);
-                        // A extração do path pode variar dependendo da estrutura da URL do Supabase.
-                        // Ajuste se o seu path for diferente de /storage/v1/object/public/public-images/...
-                        const pathName = urlObject.pathname;
-                        const publicImagesPrefix = '/public/public-images/';
-                        const startIndex = pathName.indexOf(publicImagesPrefix);
-
-                        if (startIndex !== -1) {
-                            return decodeURIComponent(pathName.substring(startIndex + publicImagesPrefix.length));
+                        const pathParts = urlObject.pathname.split('/public-images/');
+                        if (pathParts.length > 1) {
+                            return decodeURIComponent(pathParts[1]);
                         }
                         return '';
                     } catch (e) {
                         console.error('URL de imagem inválida, pulando:', url);
                         return '';
                     }
-                }).filter(Boolean);
+                })
+                .filter(Boolean); // Filtra strings vazias ou nulas
 
-                if (filePaths.length > 0) {
-                    console.log("Tentando deletar os seguintes arquivos do storage:", filePaths);
-                    const { error: imageError } = await supabase.storage
-                        .from('public-images')
-                        .remove(filePaths);
-                    
-                    if (imageError) {
-                        throw new Error(`Falha ao remover imagens do armazenamento: ${imageError.message}. Verifique as políticas RLS do Storage.`);
-                    }
+            if (filePaths.length > 0) {
+                console.log("Tentando deletar os seguintes arquivos do storage:", filePaths);
+                const { error: imageError } = await supabase.storage
+                    .from('public-images')
+                    .remove(filePaths);
+                
+                if (imageError) {
+                    // Interrompe se a exclusão da imagem falhar
+                    throw new Error(`Falha ao remover imagens do armazenamento: ${imageError.message}`);
                 }
             }
         }
 
+        // Passo 2: Remover o produto do banco de dados
         const { error: dbError } = await supabase.from('products').delete().eq('id', productId);
         
         if (dbError) {
-            // Este erro pode acontecer se as imagens foram removidas mas o produto não.
-            throw new Error(`As imagens podem ter sido removidas, mas o produto não foi deletado do banco de dados. Erro: ${dbError.message}`);
+            // Este erro pode acontecer se as permissões RLS estiverem incorretas.
+            throw new Error(`O produto não foi deletado do banco de dados. Erro: ${dbError.message}`);
         }
 
         toast({ title: "Produto Removido!", description: "O produto e suas imagens foram removidos com sucesso." });
-        fetchProducts();
+        fetchProducts(); // Atualiza a lista de produtos
 
     } catch (error: any) {
         console.error("Erro detalhado ao deletar produto:", JSON.stringify(error, null, 2));
@@ -384,7 +381,7 @@ export default function DashboardProductsPage() {
         </CardContent>
         <CardFooter>
           <div className="text-xs text-muted-foreground">
-            Mostrando <strong>{products.length}</strong> de <strong>{products.length}</strong> {products.length === 1 ? 'produto' : 'produtos'}
+             Mostrando <strong>{products.length}</strong> {products.length === 1 ? 'produto' : 'produtos'}
           </div>
         </CardFooter>
       </Card>
