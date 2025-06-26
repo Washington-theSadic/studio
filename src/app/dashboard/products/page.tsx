@@ -48,7 +48,8 @@ export default function DashboardProductsPage() {
   const [loading, setLoading] = React.useState(true)
   const [isSheetOpen, setIsSheetOpen] = React.useState(false)
   const [editingProduct, setEditingProduct] = React.useState<Product | null>(null)
-  const [formImages, setFormImages] = React.useState<string[]>([])
+  const [formImages, setFormImages] = React.useState<(string | File)[]>([])
+  const [isSubmitting, setIsSubmitting] = React.useState(false)
   const { toast } = useToast();
 
   const fetchProducts = React.useCallback(async () => {
@@ -79,45 +80,20 @@ export default function DashboardProductsPage() {
   }
   
   const handleDelete = async (productId: string) => {
+    // Note: This doesn't delete images from storage. For a production app, you'd want to.
     const { error } = await supabase.from('products').delete().eq('id', productId);
     if (error) {
       toast({ title: "Erro ao deletar produto", description: error.message, variant: "destructive" });
     } else {
       toast({ title: "Produto Removido!", description: "O produto foi removido com sucesso." });
-      fetchProducts(); // Re-fetch products
+      fetchProducts();
     }
   }
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    // This is a simplified image handler that uses base64 data URIs.
-    // For a production app, you should upload files to Supabase Storage and store the URL.
     const files = event.target.files;
     if (files) {
-      const filePromises = Array.from(files).map(file => {
-        return new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onloadend = () => {
-            if (reader.result) {
-              resolve(reader.result as string);
-            } else {
-              reject(new Error("Failed to read file"));
-            }
-          };
-          reader.onerror = reject;
-          reader.readAsDataURL(file);
-        });
-      });
-
-      Promise.all(filePromises).then(newImages => {
-        setFormImages(prev => [...prev, ...newImages]);
-      }).catch(error => {
-        console.error("Error uploading images:", error);
-        toast({
-          title: "Erro ao carregar imagem",
-          description: "Houve um problema ao processar as imagens.",
-          variant: "destructive"
-        })
-      });
+      setFormImages(prev => [...prev, ...Array.from(files)]);
     }
   };
 
@@ -128,33 +104,64 @@ export default function DashboardProductsPage() {
 
   const handleFormSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const formData = new FormData(event.currentTarget);
-    const productData = {
-      id: editingProduct ? editingProduct.id : undefined,
-      name: formData.get('name') as string,
-      description: formData.get('description') as string,
-      longDescription: formData.get('longDescription') as string,
-      price: parseFloat(formData.get('price') as string),
-      salePrice: formData.get('salePrice') ? parseFloat(formData.get('salePrice') as string) : null,
-      category: formData.get('category') as Product['category'],
-      status: formData.get('status') as Product['status'],
-      stock: parseInt(formData.get('stock') as string, 10),
-      featured: formData.get('featured') === 'on',
-      images: formImages.length > 0 ? formImages : ['https://placehold.co/600x600'],
-    };
+    setIsSubmitting(true);
 
-    const { error } = await supabase.from('products').upsert(productData);
+    try {
+      const formData = new FormData(event.currentTarget);
+      
+      const uploadedImageUrls: string[] = [];
+      for (const img of formImages) {
+        if (typeof img === 'string') {
+          uploadedImageUrls.push(img); // Keep existing URL
+        } else {
+          // It's a File object, upload it
+          const file = img;
+          const fileName = `${crypto.randomUUID()}-${file.name}`;
+          const { data, error: uploadError } = await supabase.storage
+            .from('product-images')
+            .upload(fileName, file);
 
-    if (error) {
-      toast({ title: "Erro ao salvar produto", description: error.message, variant: "destructive" });
-    } else {
+          if (uploadError) throw uploadError;
+
+          const { data: { publicUrl } } = supabase.storage
+            .from('product-images')
+            .getPublicUrl(data.path);
+          
+          uploadedImageUrls.push(publicUrl);
+        }
+      }
+
+      const priceStr = formData.get('price') as string;
+      const salePriceStr = formData.get('salePrice') as string;
+
+      const productData = {
+        id: editingProduct ? editingProduct.id : undefined,
+        name: formData.get('name') as string,
+        description: formData.get('description') as string,
+        longDescription: formData.get('longDescription') as string,
+        price: parseFloat(priceStr),
+        salePrice: salePriceStr ? parseFloat(salePriceStr) : null,
+        category: formData.get('category') as Product['category'],
+        status: formData.get('status') as Product['status'],
+        stock: parseInt(formData.get('stock') as string, 10),
+        featured: formData.get('featured') === 'on',
+        images: uploadedImageUrls.length > 0 ? uploadedImageUrls : ['https://placehold.co/600x600'],
+      };
+
+      const { error } = await supabase.from('products').upsert(productData);
+
+      if (error) throw error;
+
       toast({ title: `Produto ${editingProduct ? 'Atualizado' : 'Adicionado'}!`, description: `${productData.name} foi salvo.` });
-      fetchProducts(); // Re-fetch
+      fetchProducts();
+      setIsSheetOpen(false);
+      setEditingProduct(null);
+      setFormImages([]);
+    } catch (error: any) {
+      toast({ title: "Erro ao salvar produto", description: error.message || "Ocorreu um erro desconhecido.", variant: "destructive" });
+    } finally {
+      setIsSubmitting(false);
     }
-    
-    setIsSheetOpen(false);
-    setEditingProduct(null);
-    setFormImages([]);
   };
   
   const formatPrice = (price: number) => {
@@ -284,39 +291,43 @@ export default function DashboardProductsPage() {
             <div className="grid gap-4 py-4 max-h-[80vh] overflow-y-auto px-1">
               <div className="grid gap-2">
                 <Label htmlFor="name">Nome</Label>
-                <Input id="name" name="name" defaultValue={editingProduct?.name} required />
+                <Input id="name" name="name" defaultValue={editingProduct?.name} required disabled={isSubmitting} />
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="description">Descrição Curta</Label>
-                <Textarea id="description" name="description" defaultValue={editingProduct?.description} required />
+                <Textarea id="description" name="description" defaultValue={editingProduct?.description} required disabled={isSubmitting} />
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="longDescription">Descrição Longa</Label>
-                <Textarea id="longDescription" name="longDescription" rows={5} defaultValue={editingProduct?.longDescription} required />
+                <Textarea id="longDescription" name="longDescription" rows={5} defaultValue={editingProduct?.longDescription} required disabled={isSubmitting} />
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="images">Imagens</Label>
                 <div className="grid grid-cols-3 gap-4 mb-2">
-                  {formImages.map((src, index) => (
-                    <div key={index} className="relative aspect-square">
-                      <Image
-                        src={src}
-                        alt={`Imagem do produto ${index + 1}`}
-                        fill
-                        className="rounded-md object-cover"
-                      />
-                      <Button
-                        type="button"
-                        variant="destructive"
-                        size="icon"
-                        className="absolute top-1 right-1 h-6 w-6 rounded-full"
-                        onClick={() => handleImageRemove(index)}
-                      >
-                        <X className="h-4 w-4" />
-                        <span className="sr-only">Remover imagem</span>
-                      </Button>
-                    </div>
-                  ))}
+                  {formImages.map((img, index) => {
+                    const src = typeof img === 'string' ? img : URL.createObjectURL(img);
+                    return (
+                      <div key={index} className="relative aspect-square">
+                        <Image
+                          src={src}
+                          alt={`Imagem do produto ${index + 1}`}
+                          fill
+                          className="rounded-md object-cover"
+                        />
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="icon"
+                          className="absolute top-1 right-1 h-6 w-6 rounded-full"
+                          onClick={() => handleImageRemove(index)}
+                          disabled={isSubmitting}
+                        >
+                          <X className="h-4 w-4" />
+                          <span className="sr-only">Remover imagem</span>
+                        </Button>
+                      </div>
+                    )
+                  })}
                 </div>
                 <Input
                   id="images"
@@ -324,22 +335,23 @@ export default function DashboardProductsPage() {
                   accept="image/*"
                   multiple
                   onChange={handleImageUpload}
+                  disabled={isSubmitting}
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
                   <Label htmlFor="price">Preço</Label>
-                  <Input id="price" name="price" type="number" step="0.01" defaultValue={editingProduct?.price} required />
+                  <Input id="price" name="price" type="number" step="0.01" defaultValue={editingProduct?.price} required disabled={isSubmitting} />
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="salePrice">Preço Promocional (opcional)</Label>
-                  <Input id="salePrice" name="salePrice" type="number" step="0.01" defaultValue={editingProduct?.salePrice || ''} />
+                  <Input id="salePrice" name="salePrice" type="number" step="0.01" defaultValue={editingProduct?.salePrice || ''} disabled={isSubmitting} />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
                   <Label htmlFor="category">Categoria</Label>
-                  <Select name="category" defaultValue={editingProduct?.category} required>
+                  <Select name="category" defaultValue={editingProduct?.category} required disabled={isSubmitting}>
                     <SelectTrigger>
                       <SelectValue placeholder="Selecione uma categoria" />
                     </SelectTrigger>
@@ -353,17 +365,17 @@ export default function DashboardProductsPage() {
                 </div>
                  <div className="grid gap-2">
                     <Label htmlFor="stock">Estoque</Label>
-                    <Input id="stock" name="stock" type="number" defaultValue={editingProduct?.stock} required />
+                    <Input id="stock" name="stock" type="number" defaultValue={editingProduct?.stock} required disabled={isSubmitting} />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                  <div className="flex items-center space-x-2">
-                    <Switch id="featured" name="featured" defaultChecked={editingProduct?.featured} />
+                    <Switch id="featured" name="featured" defaultChecked={editingProduct?.featured} disabled={isSubmitting} />
                     <Label htmlFor="featured">Produto em Destaque?</Label>
                   </div>
                    <div className="grid gap-2">
                     <Label htmlFor="status">Status</Label>
-                    <Select name="status" defaultValue={editingProduct?.status} required>
+                    <Select name="status" defaultValue={editingProduct?.status} required disabled={isSubmitting}>
                       <SelectTrigger>
                         <SelectValue placeholder="Selecione um status" />
                       </SelectTrigger>
@@ -377,9 +389,12 @@ export default function DashboardProductsPage() {
             </div>
             <SheetFooter>
               <SheetClose asChild>
-                <Button variant="outline">Cancelar</Button>
+                <Button variant="outline" disabled={isSubmitting}>Cancelar</Button>
               </SheetClose>
-              <Button type="submit">Salvar produto</Button>
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Salvar produto
+              </Button>
             </SheetFooter>
           </form>
         </SheetContent>
