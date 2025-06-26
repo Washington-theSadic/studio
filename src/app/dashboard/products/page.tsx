@@ -86,33 +86,54 @@ export default function DashboardProductsPage() {
         return;
     }
 
+    // First, try to delete images from storage
     if (productToDelete.images && productToDelete.images.length > 0) {
-        const supabaseImageUrls = productToDelete.images.filter(url => url.includes('supabase.co'));
+        const supabaseImageUrls = productToDelete.images.filter(url => url && url.includes('supabase.co'));
         
         if (supabaseImageUrls.length > 0) {
             const filePaths = supabaseImageUrls.map(url => {
-                return url.substring(url.lastIndexOf('public-images/') + 'public-images/'.length);
-            });
+                try {
+                    const urlObject = new URL(url);
+                    const pathSegments = urlObject.pathname.split('/');
+                    const bucketIndex = pathSegments.indexOf('public-images');
+                    if (bucketIndex === -1) return '';
+                    return pathSegments.slice(bucketIndex + 1).join('/');
+                } catch (e) {
+                    console.error('URL inválida no array de imagens:', url);
+                    return '';
+                }
+            }).filter(Boolean); // remove any empty strings from failed parsing
 
-            const { error: imageError } = await supabase.storage
-              .from('public-images')
-              .remove(filePaths);
-              
-            if (imageError) {
-              console.error("Erro ao deletar imagens do storage:", imageError);
-              toast({ title: "Aviso", description: `Não foi possível remover as imagens do produto. Erro: ${imageError.message}`, variant: "default" });
+            if (filePaths.length > 0) {
+                console.log("Tentando deletar os seguintes arquivos do storage:", filePaths);
+                const { error: imageError } = await supabase.storage
+                    .from('public-images')
+                    .remove(filePaths);
+                
+                if (imageError) {
+                    console.error("Erro ao deletar imagens do storage:", imageError);
+                    toast({ 
+                        title: "Erro ao Deletar Imagens", 
+                        description: `O produto não pode ser deletado porque suas imagens não foram removidas do storage. Erro: ${imageError.message}`, 
+                        variant: "destructive" 
+                    });
+                    return; // Stop execution if image deletion fails
+                }
             }
         }
     }
 
-    const { error } = await supabase.from('products').delete().eq('id', productId);
-    if (error) {
-      toast({ title: "Erro ao deletar produto", description: `Falha ao remover do banco de dados: ${error.message}`, variant: "destructive" });
+    // If image deletion was successful (or not needed), delete the product from the database
+    const { error: dbError } = await supabase.from('products').delete().eq('id', productId);
+    
+    if (dbError) {
+      toast({ title: "Erro ao deletar produto", description: `As imagens foram removidas, mas o produto não foi deletado do banco de dados. Erro: ${dbError.message}`, variant: "destructive" });
     } else {
       toast({ title: "Produto Removido!", description: "O produto e suas imagens foram removidos com sucesso." });
       fetchProducts();
     }
   }
+
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
