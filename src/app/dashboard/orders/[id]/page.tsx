@@ -3,7 +3,6 @@
 
 import * as React from 'react';
 import { useParams, notFound, useRouter } from 'next/navigation';
-import { orders, Order } from '@/lib/orders';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -11,7 +10,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Loader2 } from 'lucide-react';
+import type { Order } from '@/lib/orders';
+import { supabase } from '@/lib/supabase';
+import { Skeleton } from '@/components/ui/skeleton';
 
 type Status = Order['status'];
 
@@ -23,29 +25,71 @@ const statusColors: Record<Status, string> = {
   Cancelado: 'bg-destructive text-destructive-foreground hover:bg-destructive/90',
 };
 
+function OrderDetailSkeleton() {
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center gap-4">
+        <Skeleton className="h-7 w-7 rounded-md" />
+        <Skeleton className="h-6 w-32" />
+      </div>
+      <div className="grid gap-4 md:grid-cols-[1fr_250px] lg:grid-cols-3 lg:gap-8">
+        <div className="grid auto-rows-max items-start gap-4 lg:col-span-2 lg:gap-8">
+          <Card>
+            <CardHeader><Skeleton className="h-6 w-48" /></CardHeader>
+            <CardContent><Skeleton className="h-40 w-full" /></CardContent>
+            <CardFooter><Skeleton className="h-8 w-56 ml-auto" /></CardFooter>
+          </Card>
+        </div>
+        <div className="grid auto-rows-max items-start gap-4 lg:gap-8">
+          <Card><CardContent className="p-6"><Skeleton className="h-28 w-full" /></CardContent></Card>
+          <Card><CardContent className="p-6"><Skeleton className="h-20 w-full" /></CardContent></Card>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function OrderDetailPage() {
   const params = useParams();
   const router = useRouter();
   const { id } = params;
   const { toast } = useToast();
   
-  const initialOrder = React.useMemo(() => orders.find((o) => o.id === id), [id]);
+  const [order, setOrder] = React.useState<Order | undefined>(undefined);
+  const [loading, setLoading] = React.useState(true);
+  const [isSaving, setIsSaving] = React.useState(false);
+  const [currentStatus, setCurrentStatus] = React.useState<Status>('Pendente');
 
-  const [order, setOrder] = React.useState<Order | undefined>(initialOrder);
+  React.useEffect(() => {
+    if (!id) return;
+    const fetchOrder = async () => {
+      setLoading(true);
+      const { data, error } = await supabase.from('orders').select('*').eq('id', id).single();
+      if (error || !data) {
+        notFound();
+      } else {
+        setOrder(data);
+        setCurrentStatus(data.status);
+      }
+      setLoading(false);
+    };
+    fetchOrder();
+  }, [id]);
 
+  if (loading) {
+    return <OrderDetailSkeleton />;
+  }
+  
   if (!order) {
     notFound();
   }
   
-  const [currentStatus, setCurrentStatus] = React.useState<Status>(order.status);
-
   const formatPrice = (price: number) => {
     return price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   };
   
   const formatDate = (dateString: string) => {
-    const [year, month, day] = dateString.split('-').map(Number);
-    const date = new Date(Date.UTC(year, month - 1, day));
+    const date = new Date(dateString);
     return date.toLocaleDateString('pt-BR', {
       day: '2-digit',
       month: 'long',
@@ -58,15 +102,23 @@ export default function OrderDetailPage() {
     setCurrentStatus(newStatus);
   };
   
-  const handleSaveChanges = () => {
-    // In a real app, you would make an API call to update the order status
-    setOrder({ ...order, status: currentStatus });
-    toast({
-      title: 'Status do Pedido Atualizado!',
-      description: `O status do pedido #${order.id} foi alterado para "${currentStatus}".`,
-    });
-    // Note: This change is local to this page. 
-    // To make it persist across the app, a backend or a global state management solution would be needed.
+  const handleSaveChanges = async () => {
+    setIsSaving(true);
+    const { error } = await supabase
+      .from('orders')
+      .update({ status: currentStatus })
+      .eq('id', order.id);
+
+    if (error) {
+       toast({ title: 'Erro ao salvar', description: error.message, variant: 'destructive' });
+    } else {
+      setOrder({ ...order, status: currentStatus });
+      toast({
+        title: 'Status do Pedido Atualizado!',
+        description: `O status do pedido #${order.id} foi alterado para "${currentStatus}".`,
+      });
+    }
+    setIsSaving(false);
   };
 
   return (
@@ -77,7 +129,7 @@ export default function OrderDetailPage() {
           <span className="sr-only">Voltar</span>
         </Button>
         <h1 className="flex-1 shrink-0 whitespace-nowrap text-xl font-semibold tracking-tight sm:grow-0">
-          Pedido #{order.id}
+          Pedido #{order.id.substring(0, 8)}...
         </h1>
       </div>
       <div className="grid gap-4 md:grid-cols-[1fr_250px] lg:grid-cols-3 lg:gap-8">
@@ -111,7 +163,7 @@ export default function OrderDetailPage() {
              <CardFooter className="flex justify-end font-bold text-lg border-t pt-6">
               <div className="flex items-center gap-4">
                 <span>Total do Pedido:</span>
-                <span>{formatPrice(order.total)}</span>
+                <span>{formatPrice(order.total_price)}</span>
               </div>
             </CardFooter>
           </Card>
@@ -127,7 +179,7 @@ export default function OrderDetailPage() {
                     {currentStatus}
                 </Badge>
                 <div className="grid gap-2">
-                    <Select value={currentStatus} onValueChange={(value) => handleStatusChange(value as Status)}>
+                    <Select value={currentStatus} onValueChange={(value) => handleStatusChange(value as Status)} disabled={isSaving}>
                       <SelectTrigger id="status" aria-label="Selecione o status">
                         <SelectValue placeholder="Mudar status do pedido" />
                       </SelectTrigger>
@@ -142,7 +194,8 @@ export default function OrderDetailPage() {
                 </div>
             </CardContent>
             <CardFooter>
-              <Button className="w-full" onClick={handleSaveChanges} disabled={currentStatus === order.status}>
+              <Button className="w-full" onClick={handleSaveChanges} disabled={isSaving || currentStatus === order.status}>
+                {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Salvar Alterações
               </Button>
             </CardFooter>
@@ -153,9 +206,9 @@ export default function OrderDetailPage() {
               <CardTitle>Cliente</CardTitle>
             </CardHeader>
             <CardContent className="grid gap-2 text-sm">
-                <div className="font-medium">{order.customer.name}</div>
-                <div className="text-muted-foreground">{order.customer.email}</div>
-                <div className="text-muted-foreground pt-2 border-t mt-2">Pedido realizado em {formatDate(order.date)}</div>
+                <div className="font-medium">{order.customer_name}</div>
+                <div className="text-muted-foreground">{order.customer_email}</div>
+                <div className="text-muted-foreground pt-2 border-t mt-2">Pedido realizado em {formatDate(order.created_at)}</div>
             </CardContent>
           </Card>
         </div>

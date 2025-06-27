@@ -2,8 +2,7 @@
 "use client"
 
 import * as React from "react"
-import { orders as initialOrders, Order } from "@/lib/orders"
-import { MoreHorizontal } from "lucide-react"
+import { MoreHorizontal, Loader2 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -25,6 +24,8 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { cn } from "@/lib/utils"
 import { useRouter } from "next/navigation"
+import type { Order } from "@/lib/orders"
+import { supabase } from "@/lib/supabase"
 
 type Status = Order['status'];
 
@@ -37,9 +38,24 @@ const statusColors: Record<Status, string> = {
 };
 
 export default function DashboardOrdersPage() {
-  const [orders, setOrders] = React.useState<Order[]>(initialOrders);
+  const [orders, setOrders] = React.useState<Order[]>([]);
+  const [loading, setLoading] = React.useState(true);
   const [activeTab, setActiveTab] = React.useState<Status | "Todos">("Todos");
   const router = useRouter();
+
+  React.useEffect(() => {
+    const fetchOrders = async () => {
+        setLoading(true);
+        const { data, error } = await supabase.from('orders').select('*').order('created_at', { ascending: false });
+        if (error) {
+            console.error("Error fetching orders:", error);
+        } else {
+            setOrders(data || []);
+        }
+        setLoading(false);
+    };
+    fetchOrders();
+  }, []);
 
   const filteredOrders = React.useMemo(() => {
     if (activeTab === "Todos") return orders;
@@ -51,8 +67,7 @@ export default function DashboardOrdersPage() {
   };
   
   const formatDate = (dateString: string) => {
-    const [year, month, day] = dateString.split('-').map(Number);
-    const date = new Date(Date.UTC(year, month - 1, day));
+    const date = new Date(dateString);
     return date.toLocaleDateString('pt-BR', {
       day: '2-digit',
       month: '2-digit',
@@ -79,60 +94,72 @@ export default function DashboardOrdersPage() {
             ))}
           </TabsList>
         </Tabs>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Cliente</TableHead>
-              <TableHead className="hidden sm:table-cell">Status</TableHead>
-              <TableHead className="hidden sm:table-cell">Data</TableHead>
-              <TableHead className="text-right">Total</TableHead>
-              <TableHead>
-                <span className="sr-only">Ações</span>
-              </TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredOrders.map(order => (
-              <TableRow key={order.id}>
-                <TableCell>
-                  <div className="font-medium">{order.customer.name}</div>
-                  <div className="hidden text-sm text-muted-foreground md:inline">
-                    {order.customer.email}
-                  </div>
-                </TableCell>
-                <TableCell className="hidden sm:table-cell">
-                  <Badge className={cn("border-transparent", statusColors[order.status])}>
-                    {order.status}
-                  </Badge>
-                </TableCell>
-                <TableCell className="hidden sm:table-cell">
-                  {formatDate(order.date)}
-                </TableCell>
-                <TableCell className="text-right">{formatPrice(order.total)}</TableCell>
-                <TableCell>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button
-                        aria-haspopup="true"
-                        size="icon"
-                        variant="ghost"
-                      >
-                        <MoreHorizontal className="h-4 w-4" />
-                        <span className="sr-only">Toggle menu</span>
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuLabel>Ações</DropdownMenuLabel>
-                      <DropdownMenuItem onClick={() => router.push(`/dashboard/orders/${order.id}`)}>
-                        Ver Detalhes
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </TableCell>
+        {loading ? (
+          <div className="flex justify-center items-center h-64">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          </div>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Cliente</TableHead>
+                <TableHead className="hidden sm:table-cell">Status</TableHead>
+                <TableHead className="hidden sm:table-cell">Data</TableHead>
+                <TableHead className="text-right">Total</TableHead>
+                <TableHead>
+                  <span className="sr-only">Ações</span>
+                </TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {filteredOrders.length > 0 ? filteredOrders.map(order => (
+                <TableRow key={order.id}>
+                  <TableCell>
+                    <div className="font-medium">{order.customer_name}</div>
+                    <div className="hidden text-sm text-muted-foreground md:inline">
+                      {order.customer_email}
+                    </div>
+                  </TableCell>
+                  <TableCell className="hidden sm:table-cell">
+                    <Badge className={cn("border-transparent", statusColors[order.status])}>
+                      {order.status}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="hidden sm:table-cell">
+                    {formatDate(order.created_at)}
+                  </TableCell>
+                  <TableCell className="text-right">{formatPrice(order.total_price)}</TableCell>
+                  <TableCell>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          aria-haspopup="true"
+                          size="icon"
+                          variant="ghost"
+                        >
+                          <MoreHorizontal className="h-4 w-4" />
+                          <span className="sr-only">Toggle menu</span>
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuLabel>Ações</DropdownMenuLabel>
+                        <DropdownMenuItem onClick={() => router.push(`/dashboard/orders/${order.id}`)}>
+                          Ver Detalhes
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                </TableRow>
+              )) : (
+                <TableRow>
+                  <TableCell colSpan={5} className="h-24 text-center">
+                    Nenhum pedido encontrado.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        )}
       </CardContent>
     </Card>
   )

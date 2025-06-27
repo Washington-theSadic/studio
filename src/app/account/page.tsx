@@ -14,7 +14,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
-import { orders, Order } from '@/lib/orders';
+import { Order } from '@/lib/orders';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
@@ -131,6 +131,9 @@ export default function AccountPage() {
   const [isUploading, setIsUploading] = useState(false);
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [isAddressesLoading, setIsAddressesLoading] = useState(true);
+  const [userOrders, setUserOrders] = useState<Order[]>([]);
+  const [isOrdersLoading, setIsOrdersLoading] = useState(true);
+
 
   const fetchAddresses = async (userId: string) => {
     setIsAddressesLoading(true);
@@ -146,6 +149,22 @@ export default function AccountPage() {
     }
     setIsAddressesLoading(false);
   };
+  
+  const fetchUserOrders = async (userId: string) => {
+    setIsOrdersLoading(true);
+    const { data, error } = await supabase
+        .from('orders')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false });
+
+    if (error) {
+        toast({ title: "Erro ao buscar pedidos", description: error.message, variant: "destructive" });
+    } else {
+        setUserOrders(data || []);
+    }
+    setIsOrdersLoading(false);
+  };
 
 
   useEffect(() => {
@@ -156,6 +175,7 @@ export default function AccountPage() {
       setName(currentUser.name);
       setEmail(currentUser.email);
       fetchAddresses(currentUser.id);
+      fetchUserOrders(currentUser.id);
     }
   }, [currentUser, loading, router]);
   
@@ -210,13 +230,10 @@ export default function AccountPage() {
       </div>
     );
   }
-
-  const userOrders = orders.filter(order => order.customer.email === currentUser.email);
   
   const formatPrice = (price: number) => price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   const formatDate = (dateString: string) => {
-    const [year, month, day] = dateString.split('-').map(Number);
-    const date = new Date(Date.UTC(year, month - 1, day));
+    const date = new Date(dateString);
     return date.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric', timeZone: 'UTC' });
   };
 
@@ -315,20 +332,24 @@ export default function AccountPage() {
 
         <PageSection icon={<Package className="h-8 w-8" />} title="Meus Pedidos" description="Acompanhe o histórico dos seus pedidos.">
              <CardContent className="p-0">
-                {userOrders.length > 0 ? (
+                {isOrdersLoading ? (
+                  <div className="p-6 text-center text-muted-foreground">
+                    <Loader2 className="h-6 w-6 animate-spin mx-auto" />
+                  </div>
+                ) : userOrders.length > 0 ? (
                     <div className="divide-y">
                         {userOrders.map(order => (
                             <div key={order.id} className="p-6 grid grid-cols-2 md:grid-cols-4 gap-4 items-center">
                                 <div>
-                                    <p className="font-semibold">Pedido #{order.id}</p>
-                                    <p className="text-sm text-muted-foreground">{formatDate(order.date)}</p>
+                                    <p className="font-semibold">Pedido #{order.id.substring(0,8)}...</p>
+                                    <p className="text-sm text-muted-foreground">{formatDate(order.created_at)}</p>
                                 </div>
                                 <div>
                                     <Badge className={cn('text-xs w-full justify-center text-center', statusColors[order.status])}>
                                         {order.status}
                                     </Badge>
                                 </div>
-                                <p className="font-medium text-right md:text-center">{formatPrice(order.total)}</p>
+                                <p className="font-medium text-right md:text-center">{formatPrice(order.total_price)}</p>
                                 <div className="text-right col-span-2 md:col-span-1">
                                     <Button variant="outline" size="sm" onClick={() => router.push(`/dashboard/orders/${order.id}`)}>Ver Detalhes</Button>
                                 </div>
@@ -352,4 +373,3 @@ export default function AccountPage() {
     </div>
   );
 }
-

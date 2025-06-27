@@ -1,13 +1,16 @@
+
 "use client"
 
 import * as React from "react"
 import Link from "next/link"
-import { Activity, CreditCard, DollarSign, Users, Bell } from "lucide-react"
+import { Activity, CreditCard, DollarSign, Users, Bell, Loader2 } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartConfig } from "@/components/ui/chart"
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts"
-import { orders } from "@/lib/orders"
+import type { Order } from "@/lib/orders"
+import { supabase } from "@/lib/supabase"
+import { Skeleton } from "@/components/ui/skeleton"
 
 const chartData = [
   { month: "Janeiro", desktop: 186, mobile: 80 },
@@ -71,78 +74,115 @@ const timeSince = (dateString: string) => {
     return "agora mesmo";
 };
 
+function StatCardSkeleton() {
+    return (
+        <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-4 w-4" />
+            </CardHeader>
+            <CardContent>
+                <Skeleton className="h-7 w-32" />
+                <Skeleton className="h-3 w-40 mt-1" />
+            </CardContent>
+        </Card>
+    )
+}
+
 
 export default function DashboardPage() {
-  const recentOrders = React.useMemo(() => 
-    [...orders]
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-      .slice(0, 5),
-    []
-  );
+  const [orders, setOrders] = React.useState<Order[]>([]);
+  const [loading, setLoading] = React.useState(true);
   
-  const totalRevenue = orders.reduce((sum, order) => sum + order.total, 0);
-  const totalSales = orders.length;
-
   const [timeAgo, setTimeAgo] = React.useState<Record<string, string>>({});
+
+  React.useEffect(() => {
+    const fetchOrders = async () => {
+      setLoading(true);
+      const { data, error } = await supabase.from('orders').select('*').order('created_at', { ascending: false });
+      if (error) {
+        console.error("Error fetching orders:", error);
+      } else {
+        setOrders(data || []);
+      }
+      setLoading(false);
+    };
+    fetchOrders();
+  }, []);
+
+  const recentOrders = orders.slice(0, 5);
+  const totalRevenue = orders.reduce((sum, order) => sum + order.total_price, 0);
+  const totalSales = orders.length;
 
   React.useEffect(() => {
     const calculateTimes = () => {
         const newTimes: Record<string, string> = {};
         recentOrders.forEach(order => {
-            newTimes[order.id] = timeSince(order.date);
+            newTimes[order.id] = timeSince(order.created_at);
         });
         setTimeAgo(newTimes);
     };
 
     calculateTimes();
-    const interval = setInterval(calculateTimes, 60000);
+    const intervalId = setInterval(calculateTimes, 60000); // Update every minute
 
-    return () => clearInterval(interval);
+    return () => clearInterval(intervalId);
   }, [recentOrders]);
-
+  
   return (
     <div className="flex flex-col gap-8">
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Receita Total</CardTitle>
-                    <DollarSign className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                    <div className="text-2xl font-bold">{formatPrice(totalRevenue)}</div>
-                    <p className="text-xs text-muted-foreground">+20.1% do último mês</p>
-                </CardContent>
-            </Card>
-            <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Assinaturas</CardTitle>
-                    <Users className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                    <div className="text-2xl font-bold">+2350</div>
-                    <p className="text-xs text-muted-foreground">+180.1% do último mês</p>
-                </CardContent>
-            </Card>
-            <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Vendas</CardTitle>
-                    <CreditCard className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                    <div className="text-2xl font-bold">+{totalSales}</div>
-                    <p className="text-xs text-muted-foreground">+19% do último mês</p>
-                </CardContent>
-            </Card>
-            <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Ativos Agora</CardTitle>
-                    <Activity className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                    <div className="text-2xl font-bold">+573</div>
-                    <p className="text-xs text-muted-foreground">+201 desde a última hora</p>
-                </CardContent>
-            </Card>
+            {loading ? (
+                <>
+                    <StatCardSkeleton />
+                    <StatCardSkeleton />
+                    <StatCardSkeleton />
+                    <StatCardSkeleton />
+                </>
+            ) : (
+                <>
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">Receita Total</CardTitle>
+                            <DollarSign className="h-4 w-4 text-muted-foreground" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold">{formatPrice(totalRevenue)}</div>
+                            <p className="text-xs text-muted-foreground">+20.1% do último mês</p>
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">Assinaturas</CardTitle>
+                            <Users className="h-4 w-4 text-muted-foreground" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold">+2350</div>
+                            <p className="text-xs text-muted-foreground">+180.1% do último mês</p>
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">Vendas</CardTitle>
+                            <CreditCard className="h-4 w-4 text-muted-foreground" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold">+{totalSales}</div>
+                            <p className="text-xs text-muted-foreground">+19% do último mês</p>
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">Ativos Agora</CardTitle>
+                            <Activity className="h-4 w-4 text-muted-foreground" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold">+573</div>
+                            <p className="text-xs text-muted-foreground">+201 desde a última hora</p>
+                        </CardContent>
+                    </Card>
+                </>
+            )}
         </div>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
             <Card className="lg:col-span-4">
@@ -178,18 +218,19 @@ export default function DashboardPage() {
                         <CardDescription>Últimas atividades na sua loja.</CardDescription>
                     </CardHeader>
                     <CardContent className="grid gap-6">
-                        {recentOrders.length > 0 ? recentOrders.map((order) => (
+                        {loading ? <Loader2 className="h-6 w-6 animate-spin mx-auto text-muted-foreground" /> :
+                        recentOrders.length > 0 ? recentOrders.map((order) => (
                            <div className="flex items-start gap-4" key={order.id}>
                                 <Avatar className="h-9 w-9 border flex-shrink-0">
-                                    <AvatarImage src={`https://i.pravatar.cc/40?u=${order.customer.email}`} data-ai-hint="avatar person" />
-                                    <AvatarFallback>{order.customer.name.substring(0, 2).toUpperCase()}</AvatarFallback>
+                                    <AvatarImage src={`https://i.pravatar.cc/40?u=${order.customer_email}`} data-ai-hint="avatar person" />
+                                    <AvatarFallback>{order.customer_name.substring(0, 2).toUpperCase()}</AvatarFallback>
                                 </Avatar>
                                 <div className="grid gap-1">
                                     <p className="text-sm font-medium leading-none">
-                                        Novo pedido de <span className="font-bold">{order.customer.name}</span>
+                                        Novo pedido de <span className="font-bold">{order.customer_name}</span>
                                     </p>
                                     <p className="text-sm text-muted-foreground">
-                                        Pedido <Link href={`/dashboard/orders/${order.id}`} className="font-semibold text-primary hover:underline">#{order.id}</Link> de {formatPrice(order.total)}
+                                        Pedido <Link href={`/dashboard/orders/${order.id}`} className="font-semibold text-primary hover:underline">#{order.id.substring(0,8)}...</Link> de {formatPrice(order.total_price)}
                                     </p>
                                     <p className="text-xs text-muted-foreground">{timeAgo[order.id] || 'Calculando...'}</p>
                                 </div>
@@ -205,21 +246,22 @@ export default function DashboardPage() {
                         <CardDescription>Você tem {orders.length} pedidos no total.</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <div className="space-y-6">
+                       {loading ? <Loader2 className="h-6 w-6 animate-spin mx-auto text-muted-foreground" /> : 
+                       <div className="space-y-6">
                             {recentOrders.map((order) => (
                                 <div key={order.id} className="flex items-center gap-4">
                                     <Avatar className="h-9 w-9">
-                                        <AvatarImage src={`https://i.pravatar.cc/40?u=${order.customer.email}`} alt={order.customer.name} data-ai-hint="avatar person" />
-                                        <AvatarFallback>{order.customer.name.substring(0,2).toUpperCase()}</AvatarFallback>
+                                        <AvatarImage src={`https://i.pravatar.cc/40?u=${order.customer_email}`} alt={order.customer_name} data-ai-hint="avatar person" />
+                                        <AvatarFallback>{order.customer_name.substring(0,2).toUpperCase()}</AvatarFallback>
                                     </Avatar>
                                     <div className="flex-grow">
-                                        <p className="font-semibold">{order.customer.name}</p>
-                                        <p className="text-sm text-muted-foreground">{order.customer.email}</p>
+                                        <p className="font-semibold">{order.customer_name}</p>
+                                        <p className="text-sm text-muted-foreground">{order.customer_email}</p>
                                     </div>
-                                    <div className="font-semibold">{formatPrice(order.total)}</div>
+                                    <div className="font-semibold">{formatPrice(order.total_price)}</div>
                                 </div>
                             ))}
-                        </div>
+                        </div>}
                     </CardContent>
                 </Card>
             </div>
@@ -227,4 +269,3 @@ export default function DashboardPage() {
     </div>
   )
 }
-    

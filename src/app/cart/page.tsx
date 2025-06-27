@@ -19,6 +19,8 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
+import { createOrder } from '../actions/orders';
+import type { OrderItem } from '@/lib/orders';
 
 type Address = {
   id: string;
@@ -157,8 +159,29 @@ export default function CartPage() {
     setIsCheckingOut(true);
 
     try {
+      const address = addresses.find(addr => addr.id === selectedAddress);
+      if (!address) throw new Error("Endereço selecionado não encontrado.");
+
+      const orderItems: OrderItem[] = cartItems.map(item => ({
+        productId: item.product.id,
+        productName: item.product.name,
+        quantity: item.quantity,
+        price: item.product.sale_price ?? item.product.price,
+      }));
+
+      await createOrder({
+        userId: currentUser.id,
+        customerName: currentUser.name,
+        customerEmail: currentUser.email,
+        totalPrice: totalPrice,
+        items: orderItems,
+        shippingAddress: `${address.street}\n${address.city}, ${address.state} - ${address.zip}`,
+        paymentMethod: 'Cartão ou Boleto',
+      });
+
       const checkoutUrl = await createCheckoutSession(cartItems, currentUser.email);
       if (checkoutUrl && window.top) {
+        clearCart(); // Clear cart on successful redirect
         window.top.location.href = checkoutUrl;
       } else {
         throw new Error('Não foi possível obter a URL de checkout.');
@@ -169,12 +192,11 @@ export default function CartPage() {
         description: error.message || "Ocorreu um erro inesperado. Tente novamente.",
         variant: "destructive"
       });
-    } finally {
-        setIsCheckingOut(false);
+      setIsCheckingOut(false);
     }
   };
 
-  const handleWhatsAppCheckout = (paymentMethod: 'Dinheiro' | 'Pix') => {
+  const handleWhatsAppCheckout = async (paymentMethod: 'Dinheiro' | 'Pix') => {
     if (!currentUser || !selectedAddress) {
       toast({ title: "Informações incompletas", description: "Faça login e selecione um endereço para continuar.", variant: "destructive" });
       return;
@@ -187,32 +209,56 @@ export default function CartPage() {
     }
     
     setIsCheckingOut(true);
-
-    const itemsList = cartItems
-      .map(item => `- ${item.quantity}x ${item.product.name}`)
-      .join('\n');
-
-    const message = `Olá! Gostaria de finalizar meu pedido.\n\n*Cliente:* ${currentUser.name}\n\n*Itens:*\n${itemsList}\n\n*Valor Total:* ${formatPrice(totalPrice)}\n\n*Endereço de Entrega:*\n${address.street}\n${address.city}, ${address.state} - ${address.zip}\n\n*Forma de Pagamento:* ${paymentMethod}`.trim();
-
-    const encodedMessage = encodeURIComponent(message);
-    const phoneNumber = '5577998188469';
-    const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodedMessage}`;
-
-    toast({
-      title: "Redirecionando para o WhatsApp...",
-      description: "Seu pedido está sendo preparado. Finalize a conversa no WhatsApp.",
-    });
-    
-    setTimeout(() => {
-      clearCart();
-    }, 500);
-
-    if (window.top) {
-        window.top.location.href = whatsappUrl;
-    }
-
     setIsPaymentDialogOpen(false);
-    setIsCheckingOut(false);
+
+    try {
+      const orderItems: OrderItem[] = cartItems.map(item => ({
+        productId: item.product.id,
+        productName: item.product.name,
+        quantity: item.quantity,
+        price: item.product.sale_price ?? item.product.price,
+      }));
+
+      await createOrder({
+        userId: currentUser.id,
+        customerName: currentUser.name,
+        customerEmail: currentUser.email,
+        totalPrice: totalPrice,
+        items: orderItems,
+        shippingAddress: `${address.street}\n${address.city}, ${address.state} - ${address.zip}`,
+        paymentMethod: paymentMethod,
+      });
+
+      const itemsList = cartItems
+        .map(item => `- ${item.quantity}x ${item.product.name}`)
+        .join('\n');
+
+      const message = `Olá! Gostaria de finalizar meu pedido.\n\n*Cliente:* ${currentUser.name}\n\n*Itens:*\n${itemsList}\n\n*Valor Total:* ${formatPrice(totalPrice)}\n\n*Endereço de Entrega:*\n${address.street}\n${address.city}, ${address.state} - ${address.zip}\n\n*Forma de Pagamento:* ${paymentMethod}`.trim();
+
+      const encodedMessage = encodeURIComponent(message);
+      const phoneNumber = '5577998188469';
+      const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodedMessage}`;
+
+      toast({
+        title: "Redirecionando para o WhatsApp...",
+        description: "Seu pedido está sendo preparado. Finalize a conversa no WhatsApp.",
+      });
+      
+      clearCart();
+
+      if (window.top) {
+          window.top.location.href = whatsappUrl;
+      }
+
+    } catch (error: any) {
+       toast({
+        title: "Erro ao criar pedido",
+        description: error.message || "Não foi possível salvar seu pedido. Tente novamente.",
+        variant: "destructive"
+      });
+    } finally {
+       setIsCheckingOut(false);
+    }
   };
 
 
@@ -349,7 +395,13 @@ export default function CartPage() {
               <Button 
                 size="lg" 
                 className="w-full font-semibold" 
-                onClick={() => setIsPaymentDialogOpen(true)} 
+                onClick={() => {
+                  if (!currentUser) {
+                    router.push('/login?redirect=/cart');
+                    return;
+                  }
+                  setIsPaymentDialogOpen(true)
+                }} 
                 disabled={isCheckingOut || authLoading || (!!currentUser && (!selectedAddress || addresses.length === 0))}
               >
                 {isCheckingOut && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
