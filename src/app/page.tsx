@@ -31,7 +31,7 @@ export default async function Home() {
   const saleProducts: Product[] = saleProductsData ?? [];
 
   return (
-    <div className="flex flex-col gap-24 md:gap-32">
+    <div className="flex flex-col gap-16 md:gap-24">
       {/* Hero Section */}
       <section className="relative pt-32 pb-20 md:pt-48 md:pb-32 text-center">
         <div className="container mx-auto px-4 z-10 relative">

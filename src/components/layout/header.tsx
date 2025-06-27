@@ -96,9 +96,9 @@ export default function Header() {
   return (
     <header className={cn(
       "sticky top-0 z-40 w-full transition-all duration-300",
-      isScrolled ? "bg-background border-b border-border" : "bg-transparent"
+      isScrolled ? "bg-background/80 backdrop-blur-sm border-b border-border/30" : "bg-transparent"
     )}>
-      <div className="container mx-auto px-4 flex justify-between items-center h-20">
+      <div className="container mx-auto px-4 flex justify-between items-center h-16 md:h-20">
         <Link href="/" className="text-xl font-bold text-foreground font-heading">
           JC MARKETPLACE
         </Link>
@@ -107,7 +107,7 @@ export default function Header() {
           <div className="flex items-center gap-2">
             <Link href="/cart" passHref>
               <Button variant="ghost" size="icon" className="relative" aria-label="Carrinho">
-                <ShoppingCart className="h-6 w-6" />
+                <ShoppingCart className="h-5 w-5" />
                 {cartCount > 0 && (
                   <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs rounded-full h-5 w-5 flex items-center justify-center animate-fade-in-up">
                     {cartCount}
@@ -118,7 +118,7 @@ export default function Header() {
             <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
               <SheetTrigger asChild>
                 <Button variant="ghost" size="icon" aria-label="Abrir menu">
-                  <Menu className="h-6 w-6" />
+                  <Menu className="h-5 w-5" />
                 </Button>
               </SheetTrigger>
               <SheetContent>

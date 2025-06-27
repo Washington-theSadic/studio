@@ -9,10 +9,18 @@ import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge';
 import { ShoppingCart, Zap } from 'lucide-react';
 import { useCart } from '@/context/cart-context';
+import { cn } from '@/lib/utils';
 
 type ProductCardProps = {
   product: Product;
 };
+
+const conditionColors: Record<Product['condition'], string> = {
+  Novo: 'border-amber-400 text-amber-400 bg-amber-400/10',
+  Lacrado: 'border-green-400 text-green-400 bg-green-400/10',
+  Recondicionado: 'border-gray-400 text-gray-400 bg-gray-400/10',
+};
+
 
 export default function ProductCard({ product }: ProductCardProps) {
   const { addToCart } = useCart();
@@ -32,11 +40,6 @@ export default function ProductCard({ product }: ProductCardProps) {
   return (
     <Card className="group flex flex-col overflow-hidden h-full transition-all duration-300 bg-secondary/20 hover:bg-secondary/50 border-border/30 hover:border-brand hover:shadow-lg hover:shadow-brand/10">
       <CardHeader className="p-0 border-b border-border/30 relative">
-        <div className="absolute top-3 left-3 z-10 flex flex-col gap-2">
-            {product.condition && product.condition !== 'Novo' && (
-              <Badge className="border-amber-500 text-amber-500 bg-amber-500/10" variant="outline">{product.condition}</Badge>
-            )}
-        </div>
         <Link href={`/products/${product.id}`} className="block overflow-hidden">
           <div className="aspect-square relative w-full">
             <Image
@@ -52,6 +55,13 @@ export default function ProductCard({ product }: ProductCardProps) {
       </CardHeader>
       <CardContent className="p-4 flex flex-col flex-grow">
         <div className="flex-grow">
+           {product.condition && (
+             <div className="mb-2">
+              <Badge variant="outline" className={cn(conditionColors[product.condition])}>
+                {product.condition}
+              </Badge>
+             </div>
+           )}
            <Link href={`/products/${product.id}`}>
             <h3 className="text-lg font-semibold leading-tight hover:text-brand transition-colors font-heading min-h-[3rem]">
               {product.name}
@@ -73,11 +83,11 @@ export default function ProductCard({ product }: ProductCardProps) {
 
       <CardFooter className="p-4 pt-0 mt-auto">
         <div className="flex flex-col gap-2 w-full">
-            <Button variant="outline" className="w-full" onClick={handleBuyNow}>
+            <Button className="w-full" onClick={handleBuyNow}>
                  <Zap className="mr-2 h-4 w-4" />
                 Comprar Agora
             </Button>
-            <Button className="w-full" onClick={() => addToCart(product)}>
+            <Button variant="outline" className="w-full" onClick={() => addToCart(product)}>
                 <ShoppingCart className="mr-2 h-4 w-4" />
                 Adicionar ao Carrinho
             </Button>
