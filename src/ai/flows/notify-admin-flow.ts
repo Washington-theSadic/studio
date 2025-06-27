@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview A flow to notify administrators about new orders.
@@ -22,6 +23,8 @@ const NewOrderNotificationInputSchema = z.object({
   customerName: z.string().describe('The name of the customer who placed the order.'),
   totalPrice: z.number().describe('The total price of the order.'),
   items: z.array(CartItemSchema).describe('The list of items in the order.'),
+  shippingAddress: z.string().describe('The selected shipping address for the order.'),
+  paymentMethod: z.string().describe('The selected payment method for the order.'),
 });
 export type NewOrderNotificationInput = z.infer<typeof NewOrderNotificationInputSchema>;
 
@@ -50,6 +53,10 @@ Detalhes do Pedido:
 -------------------
 Cliente: ${input.customerName}
 Valor Total: ${input.totalPrice.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+Forma de Pagamento: ${input.paymentMethod}
+
+Endereço de Entrega:
+${input.shippingAddress}
 
 Itens:
 ${itemsList}

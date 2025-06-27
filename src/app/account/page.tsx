@@ -4,7 +4,8 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/context/auth-context';
 import { useRouter } from 'next/navigation';
-import { User, MapPin, Package, KeyRound, Camera, Loader2 } from 'lucide-react';
+import { User, MapPin, Package, KeyRound, Camera, Loader2, PlusCircle } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,11 +18,16 @@ import { orders, Order } from '@/lib/orders';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog';
 
-// Mocked data
-const userAddresses = [
-  { id: 1, street: 'Rua Principal, 123', city: 'Cidade Exemplo', state: 'EX', zip: '12345-678', isPrimary: true },
-];
+type Address = {
+  id: string;
+  user_id: string;
+  street: string;
+  city: string;
+  state: string;
+  zip: string;
+};
 
 const statusColors: Record<Order['status'], string> = {
   Pendente: 'bg-yellow-500 text-black hover:bg-yellow-600',
@@ -47,6 +53,73 @@ const PageSection = ({ icon, title, description, children }: { icon: React.React
     </div>
 );
 
+const AddressForm = ({ onAddressAdded, userId }: { onAddressAdded: () => void, userId: string }) => {
+    const { toast } = useToast();
+    const [newAddress, setNewAddress] = useState({ street: '', city: '', state: '', zip: '' });
+    const [isSubmittingAddress, setIsSubmittingAddress] = useState(false);
+    const [isDialogOpen, setIsDialogOpen] = useState(false);
+
+    const handleAddAddress = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!userId) return;
+        setIsSubmittingAddress(true);
+
+        const { error } = await supabase.from('addresses').insert({ ...newAddress, user_id: userId });
+
+        if (error) {
+            toast({ title: "Erro ao adicionar endereço", description: error.message, variant: "destructive" });
+        } else {
+            toast({ title: "Endereço adicionado com sucesso!" });
+            setNewAddress({ street: '', city: '', state: '', zip: '' });
+            onAddressAdded();
+            setIsDialogOpen(false);
+        }
+        setIsSubmittingAddress(false);
+    };
+
+    return (
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+                <Button variant="outline"><PlusCircle className="mr-2 h-4 w-4" /> Adicionar Novo Endereço</Button>
+            </DialogTrigger>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Adicionar Novo Endereço</DialogTitle>
+                    <DialogDescription>Preencha os campos abaixo para adicionar um novo endereço de entrega.</DialogDescription>
+                </DialogHeader>
+                <form onSubmit={handleAddAddress} className="space-y-4">
+                    <div className="space-y-1">
+                        <Label htmlFor="street">Rua e Número</Label>
+                        <Input id="street" value={newAddress.street} onChange={(e) => setNewAddress(p => ({ ...p, street: e.target.value }))} required disabled={isSubmittingAddress} />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-1">
+                            <Label htmlFor="city">Cidade</Label>
+                            <Input id="city" value={newAddress.city} onChange={(e) => setNewAddress(p => ({ ...p, city: e.target.value }))} required disabled={isSubmittingAddress} />
+                        </div>
+                        <div className="space-y-1">
+                            <Label htmlFor="state">Estado</Label>
+                            <Input id="state" value={newAddress.state} onChange={(e) => setNewAddress(p => ({ ...p, state: e.target.value }))} required disabled={isSubmittingAddress} />
+                        </div>
+                    </div>
+                    <div className="space-y-1">
+                        <Label htmlFor="zip">CEP</Label>
+                        <Input id="zip" value={newAddress.zip} onChange={(e) => setNewAddress(p => ({ ...p, zip: e.target.value }))} required disabled={isSubmittingAddress} />
+                    </div>
+                    <DialogFooter>
+                        <DialogClose asChild>
+                           <Button type="button" variant="outline" disabled={isSubmittingAddress}>Cancelar</Button>
+                        </DialogClose>
+                        <Button type="submit" disabled={isSubmittingAddress}>
+                            {isSubmittingAddress && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            Salvar Endereço
+                        </Button>
+                    </DialogFooter>
+                </form>
+            </DialogContent>
+        </Dialog>
+    );
+};
 
 export default function AccountPage() {
   const { currentUser, loading, logout, updateAvatar } = useAuth();
@@ -56,6 +129,24 @@ export default function AccountPage() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [isUploading, setIsUploading] = useState(false);
+  const [addresses, setAddresses] = useState<Address[]>([]);
+  const [isAddressesLoading, setIsAddressesLoading] = useState(true);
+
+  const fetchAddresses = async (userId: string) => {
+    setIsAddressesLoading(true);
+    const { data, error } = await supabase
+        .from('addresses')
+        .select('*')
+        .eq('user_id', userId);
+
+    if (error) {
+        toast({ title: "Erro ao buscar endereços", description: error.message, variant: "destructive" });
+    } else {
+        setAddresses(data || []);
+    }
+    setIsAddressesLoading(false);
+  };
+
 
   useEffect(() => {
     if (!loading && !currentUser) {
@@ -64,6 +155,7 @@ export default function AccountPage() {
     if (currentUser) {
       setName(currentUser.name);
       setEmail(currentUser.email);
+      fetchAddresses(currentUser.id);
     }
   }, [currentUser, loading, router]);
   
@@ -195,9 +287,14 @@ export default function AccountPage() {
 
         <PageSection icon={<MapPin className="h-8 w-8" />} title="Meus Endereços & Contatos" description="Gerencie seus endereços e contatos.">
             <CardContent>
-                {userAddresses.length > 0 ? (
+                {isAddressesLoading ? (
                     <div className="space-y-4">
-                        {userAddresses.map(address => (
+                        <Skeleton className="h-16 w-full" />
+                        <Skeleton className="h-16 w-full" />
+                    </div>
+                ) : addresses.length > 0 ? (
+                    <div className="space-y-4">
+                        {addresses.map(address => (
                             <div key={address.id} className="border p-4 rounded-md flex justify-between items-start">
                                 <div>
                                     <p className="font-medium">{address.street}</p>
@@ -212,7 +309,7 @@ export default function AccountPage() {
                 )}
             </CardContent>
             <CardFooter className="border-t pt-6 flex justify-end">
-                <Button variant="outline">Adicionar Novo Endereço</Button>
+                 <AddressForm userId={currentUser.id} onAddressAdded={() => fetchAddresses(currentUser.id)} />
             </CardFooter>
         </PageSection>
 
@@ -255,3 +352,4 @@ export default function AccountPage() {
     </div>
   );
 }
+
