@@ -15,9 +15,9 @@ type ProductCardProps = {
   product: Product;
 };
 
-const conditionColors: Record<Product['condition'], string> = {
+const conditionClasses: Record<Product['condition'], string> = {
   Novo: 'border-amber-400 text-amber-400 bg-amber-400/10',
-  Lacrado: 'border-green-400 text-green-400 bg-green-400/10',
+  Lacrado: 'tag-lacrado-animated text-black font-semibold',
   Recondicionado: 'border-gray-400 text-gray-400 bg-gray-400/10',
 };
 
@@ -57,7 +57,7 @@ export default function ProductCard({ product }: ProductCardProps) {
         <div className="flex-grow">
            {product.condition && (
              <div className="mb-2">
-              <Badge variant="outline" className={cn(conditionColors[product.condition])}>
+              <Badge variant="outline" className={cn('border-transparent', conditionClasses[product.condition])}>
                 {product.condition}
               </Badge>
              </div>

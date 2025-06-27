@@ -80,3 +80,19 @@
     @apply bg-background text-foreground;
   }
 }
+
+@layer components {
+  .tag-lacrado-animated {
+    @apply animate-background-shine;
+    background: linear-gradient(
+      110deg,
+      #fde047,
+      #facc15,
+      #eab308,
+      #facc15,
+      #fde047
+    );
+    background-size: 200% 100%;
+    border-color: #facc15;
+  }
+}
