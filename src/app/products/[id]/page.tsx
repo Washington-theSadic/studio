@@ -8,12 +8,13 @@ import { supabase } from '@/lib/supabase';
 import type { Product } from '@/lib/products';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Carousel, CarouselContent, CarouselItem } from '@/components/ui/carousel';
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 import { useCart } from '@/context/cart-context';
 import { ShoppingCart } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { useIsMobile } from '@/hooks/use-is-mobile';
 
 function ProductPageSkeleton() {
   return (
@@ -43,7 +44,7 @@ function ProductPageSkeleton() {
 const conditionClasses: Record<Product['condition'], string> = {
   Novo: 'border-amber-400 text-amber-400 bg-amber-400/10',
   Lacrado: 'tag-lacrado-animated text-black font-semibold',
-  Recondicionado: 'border-gray-400 text-gray-400 bg-gray-400/10',
+  Recondicionado: 'bg-foreground text-background border-transparent',
 };
 
 
@@ -54,6 +55,7 @@ export default function ProductDetailPage() {
   const { addToCart } = useCart();
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -126,11 +128,17 @@ export default function ProductDetailPage() {
                 </CarouselItem>
               ))}
             </CarouselContent>
+             {!isMobile && (
+              <>
+                <CarouselPrevious />
+                <CarouselNext />
+              </>
+            )}
           </Carousel>
         </div>
         
-        <div className="flex flex-col gap-6">
-          <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-col gap-4">
+           <div className="flex flex-wrap items-center gap-2">
             <Badge variant="secondary">{product.category}</Badge>
           </div>
           <h1 className="text-3xl md:text-4xl font-bold font-headline">{product.name}</h1>

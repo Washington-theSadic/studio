@@ -19,7 +19,7 @@ type ProductCardProps = {
 const conditionClasses: Record<Product['condition'], string> = {
   Novo: 'border-amber-400 text-amber-400 bg-amber-400/10',
   Lacrado: 'tag-lacrado-animated text-black font-semibold',
-  Recondicionado: 'border-gray-400 text-gray-400 bg-gray-400/10',
+  Recondicionado: 'bg-foreground text-background border-transparent',
 };
 
 export default function ProductCard({ product }: ProductCardProps) {
