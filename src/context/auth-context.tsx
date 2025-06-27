@@ -36,13 +36,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       const supabaseUser = session?.user;
       if (supabaseUser && supabaseUser.email) {
-        const userRole = supabaseUser.email.toLowerCase() === ADMIN_EMAIL ? 'admin' : 'user';
         const user: User = {
           id: supabaseUser.id,
           email: supabaseUser.email,
           name: supabaseUser.user_metadata.name || supabaseUser.email,
           avatar_url: supabaseUser.user_metadata.avatar_url,
-          role: userRole,
+          role: supabaseUser.user_metadata.role || 'user',
         };
         setCurrentUser(user);
       } else {
@@ -58,25 +57,36 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const login = async (email: string, pass: string) => {
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password: pass });
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password: pass });
+
+    if (data.user && !error && email.toLowerCase() === ADMIN_EMAIL) {
+      if (data.user.user_metadata.role !== 'admin') {
+        const { error: updateError } = await supabase.auth.updateUser({
+          data: { role: 'admin' }
+        });
+        if (updateError) console.error("Failed to update admin role:", updateError);
+      }
+    }
+
     setLoading(false);
     return { error };
   };
 
   const register = async (name: string, email: string, pass: string) => {
      setLoading(true);
+     const userRole = email.toLowerCase() === ADMIN_EMAIL ? 'admin' : 'user';
      const { data, error } = await supabase.auth.signUp({
         email,
         password: pass,
         options: {
           data: {
             name: name,
+            role: userRole,
           }
         }
      });
 
      if (data.user && !error) {
-        // Assign a default avatar on registration
         await supabase.auth.updateUser({
             data: {
                 avatar_url: `https://i.pravatar.cc/150?u=${data.user.id}`
@@ -104,7 +114,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const fileName = `${currentUser.id}-${Date.now()}.${fileExt}`;
         const filePath = `avatars/${fileName}`;
 
-        // Upload image to supabase storage
         const { error: uploadError } = await supabase.storage
             .from('public-images')
             .upload(filePath, file, { upsert: true });
@@ -113,12 +122,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             throw uploadError;
         }
 
-        // Get public URL
         const { data: { publicUrl } } = supabase.storage
             .from('public-images')
             .getPublicUrl(filePath);
 
-        // Update user metadata
         const { data: updatedUserData, error: updateError } = await supabase.auth.updateUser({
             data: { avatar_url: publicUrl }
         });
@@ -127,7 +134,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             throw updateError;
         }
 
-        // Manually update the currentUser state to reflect changes immediately
         if (updatedUserData.user) {
              setCurrentUser(prevUser => prevUser ? {
                 ...prevUser,
