@@ -1,10 +1,14 @@
+
 "use client"
 
-import { Activity, CreditCard, DollarSign, Users } from "lucide-react"
+import * as React from "react"
+import Link from "next/link"
+import { Activity, CreditCard, DollarSign, Users, Bell } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartConfig } from "@/components/ui/chart"
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts"
+import { orders } from "@/lib/orders"
 
 const chartData = [
   { month: "Janeiro", desktop: 186, mobile: 80 },
@@ -26,15 +30,71 @@ const chartConfig = {
   },
 } satisfies ChartConfig
 
-const recentSales = [
-    { name: "Olivia Martin", email: "olivia.martin@email.com", amount: "+R$1,999.00", avatar: "https://i.pravatar.cc/40?u=a042581f4e29026024d" },
-    { name: "Jackson Lee", email: "jackson.lee@email.com", amount: "+R$39.00", avatar: "https://i.pravatar.cc/40?u=a042581f4e29026704d" },
-    { name: "Isabella Nguyen", email: "isabella.nguyen@email.com", amount: "+R$299.00", avatar: "https://i.pravatar.cc/40?u=a04258114e29026702d" },
-    { name: "William Kim", email: "will@email.com", amount: "+R$99.00", avatar: "https://i.pravatar.cc/40?u=a042581f4e29026706d" },
-    { name: "Sofia Davis", email: "sofia.davis@email.com", amount: "+R$39.00", avatar: "https://i.pravatar.cc/40?u=a042581f4e29026707d" },
-]
+const formatPrice = (price: number) => {
+    return price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+};
+
+const timeSince = (dateString: string) => {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) {
+        return "Data inválida";
+    }
+
+    const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
+    if (seconds < 0) return "agora mesmo";
+    if (seconds < 60) return "agora mesmo";
+
+    let interval = seconds / 31536000;
+    if (interval > 1) {
+        const years = Math.floor(interval);
+        return `há ${years} ${years > 1 ? 'anos' : 'ano'}`;
+    }
+    interval = seconds / 2592000;
+    if (interval > 1) {
+        const months = Math.floor(interval);
+        return `há ${months} ${months > 1 ? 'meses' : 'mês'}`;
+    }
+    interval = seconds / 86400;
+    if (interval > 1) {
+        const days = Math.floor(interval);
+        return `há ${days} ${days > 1 ? 'dias' : 'dia'}`;
+    }
+    interval = seconds / 3600;
+    if (interval > 1) {
+        const hours = Math.floor(interval);
+        return `há ${hours} ${hours > 1 ? 'horas' : 'hora'}`;
+    }
+    interval = seconds / 60;
+    if (interval > 1) {
+        const minutes = Math.floor(interval);
+        return `há ${minutes} ${minutes > 1 ? 'minutos' : 'minuto'}`;
+    }
+    return "agora mesmo";
+};
+
 
 export default function DashboardPage() {
+  const recentOrders = [...orders].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 5);
+  const totalRevenue = orders.reduce((sum, order) => sum + order.total, 0);
+  const totalSales = orders.length;
+
+  const [timeAgo, setTimeAgo] = React.useState<Record<string, string>>({});
+
+  React.useEffect(() => {
+    const calculateTimes = () => {
+        const newTimes: Record<string, string> = {};
+        recentOrders.forEach(order => {
+            newTimes[order.id] = timeSince(order.date);
+        });
+        setTimeAgo(newTimes);
+    };
+
+    calculateTimes();
+    const interval = setInterval(calculateTimes, 60000);
+
+    return () => clearInterval(interval);
+  }, [recentOrders]);
+
   return (
     <div className="flex flex-col gap-8">
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -44,7 +104,7 @@ export default function DashboardPage() {
                     <DollarSign className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                    <div className="text-2xl font-bold">R$45.231,89</div>
+                    <div className="text-2xl font-bold">{formatPrice(totalRevenue)}</div>
                     <p className="text-xs text-muted-foreground">+20.1% do último mês</p>
                 </CardContent>
             </Card>
@@ -64,7 +124,7 @@ export default function DashboardPage() {
                     <CreditCard className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                    <div className="text-2xl font-bold">+12,234</div>
+                    <div className="text-2xl font-bold">+{totalSales}</div>
                     <p className="text-xs text-muted-foreground">+19% do último mês</p>
                 </CardContent>
             </Card>
@@ -103,30 +163,64 @@ export default function DashboardPage() {
                     </ChartContainer>
                 </CardContent>
             </Card>
-            <Card className="lg:col-span-3">
-                <CardHeader>
-                    <CardTitle>Vendas Recentes</CardTitle>
-                    <CardDescription>Você fez 265 vendas este mês.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <div className="space-y-6">
-                        {recentSales.map((sale, index) => (
-                            <div key={index} className="flex items-center gap-4">
-                                <Avatar className="h-9 w-9">
-                                    <AvatarImage src={sale.avatar} alt={sale.name} data-ai-hint="avatar person" />
-                                    <AvatarFallback>{sale.name.substring(0,2).toUpperCase()}</AvatarFallback>
+            <div className="lg:col-span-3 space-y-4">
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <Bell className="h-5 w-5" />
+                            Notificações
+                        </CardTitle>
+                        <CardDescription>Últimas atividades na sua loja.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="grid gap-6">
+                        {recentOrders.length > 0 ? recentOrders.map((order) => (
+                           <div className="flex items-start gap-4" key={order.id}>
+                                <Avatar className="h-9 w-9 border flex-shrink-0">
+                                    <AvatarImage src={`https://i.pravatar.cc/40?u=${order.customer.email}`} data-ai-hint="avatar person" />
+                                    <AvatarFallback>{order.customer.name.substring(0, 2).toUpperCase()}</AvatarFallback>
                                 </Avatar>
-                                <div className="flex-grow">
-                                    <p className="font-semibold">{sale.name}</p>
-                                    <p className="text-sm text-muted-foreground">{sale.email}</p>
+                                <div className="grid gap-1">
+                                    <p className="text-sm font-medium leading-none">
+                                        Novo pedido de <span className="font-bold">{order.customer.name}</span>
+                                    </p>
+                                    <p className="text-sm text-muted-foreground">
+                                        Pedido <Link href={`/dashboard/orders/${order.id}`} className="font-semibold text-primary hover:underline">#{order.id}</Link> de {formatPrice(order.total)}
+                                    </p>
+                                    <p className="text-xs text-muted-foreground">{timeAgo[order.id] || 'Calculando...'}</p>
                                 </div>
-                                <div className="font-semibold">{sale.amount}</div>
                             </div>
-                        ))}
-                    </div>
-                </CardContent>
-            </Card>
+                        )) : (
+                            <p className="text-sm text-muted-foreground text-center py-4">Nenhuma notificação recente.</p>
+                        )}
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Vendas Recentes</CardTitle>
+                        <CardDescription>Você tem {orders.length} pedidos no total.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="space-y-6">
+                            {recentOrders.map((order) => (
+                                <div key={order.id} className="flex items-center gap-4">
+                                    <Avatar className="h-9 w-9">
+                                        <AvatarImage src={`https://i.pravatar.cc/40?u=${order.customer.email}`} alt={order.customer.name} data-ai-hint="avatar person" />
+                                        <AvatarFallback>{order.customer.name.substring(0,2).toUpperCase()}</AvatarFallback>
+                                    </Avatar>
+                                    <div className="flex-grow">
+                                        <p className="font-semibold">{order.customer.name}</p>
+                                        <p className="text-sm text-muted-foreground">{order.customer.email}</p>
+                                    </div>
+                                    <div className="font-semibold">{formatPrice(order.total)}</div>
+                                </div>
+                            ))}
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
         </div>
     </div>
   )
 }
+
+    
