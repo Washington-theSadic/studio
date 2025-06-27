@@ -170,8 +170,6 @@ export default function CartPage() {
       }));
 
       const { data: orderData, error: orderError } = await createOrder({
-        customerName: currentUser.name,
-        customerEmail: currentUser.email,
         totalPrice: totalPrice,
         items: orderItems,
         shippingAddress: `${address.street}\n${address.city}, ${address.state} - ${address.zip}`,
@@ -223,8 +221,6 @@ export default function CartPage() {
       }));
 
       const { data: orderData, error: orderError } = await createOrder({
-        customerName: currentUser.name,
-        customerEmail: currentUser.email,
         totalPrice: totalPrice,
         items: orderItems,
         shippingAddress: `${address.street}\n${address.city}, ${address.state} - ${address.zip}`,

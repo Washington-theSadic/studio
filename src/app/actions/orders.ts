@@ -8,8 +8,6 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 
 export type CreateOrderInput = {
-  customerName: string;
-  customerEmail: string;
   totalPrice: number;
   items: OrderItem[];
   shippingAddress: string;
@@ -38,14 +36,14 @@ export async function createOrder(input: CreateOrderInput): Promise<{ data: Orde
 
   const { data: { user } } = await supabase.auth.getUser();
 
-  if (!user) {
+  if (!user || !user.email) {
     return { data: null, error: 'User not authenticated.' };
   }
 
   const orderPayload = {
     user_id: user.id,
-    customer_name: input.customerName,
-    customer_email: input.customerEmail,
+    customer_name: user.user_metadata.name || 'Nome não encontrado',
+    customer_email: user.email,
     total_price: input.totalPrice,
     items: input.items,
     shipping_address: input.shippingAddress,
@@ -65,7 +63,7 @@ export async function createOrder(input: CreateOrderInput): Promise<{ data: Orde
   }
   
   const notificationInput: NewOrderNotificationInput = {
-    customerName: input.customerName,
+    customerName: orderPayload.customer_name,
     totalPrice: input.totalPrice,
     items: input.items.map(item => ({
         productName: item.productName,
