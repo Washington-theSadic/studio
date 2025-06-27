@@ -118,10 +118,13 @@ export default function DashboardPage() {
   const totalSales = orders.length;
 
   React.useEffect(() => {
-    if (recentOrders.length === 0) return;
+    if (orders.length === 0) return;
 
     const calculateTimes = () => {
         const newTimes: Record<string, string> = {};
+        // We use `recentOrders` which is derived from `orders`. The hook
+        // correctly depends on `orders` itself, not the derived value,
+        // which prevents an infinite loop.
         recentOrders.forEach(order => {
             newTimes[order.id] = timeSince(order.created_at);
         });
@@ -132,7 +135,7 @@ export default function DashboardPage() {
     const intervalId = setInterval(calculateTimes, 60000); // Update every minute
 
     return () => clearInterval(intervalId);
-  }, [recentOrders]);
+  }, [orders]); // Use `orders` as dependency to prevent infinite loop
   
   return (
     <div className="flex flex-col gap-8">
