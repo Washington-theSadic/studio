@@ -13,6 +13,7 @@ import { useCart } from '@/context/cart-context';
 import { ShoppingCart } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 
 function ProductPageSkeleton() {
   return (
@@ -38,6 +39,12 @@ function ProductPageSkeleton() {
     </div>
   )
 }
+
+const conditionColors: Record<Product['condition'], string> = {
+  Novo: 'border-amber-400 text-amber-400 bg-amber-400/10',
+  Lacrado: 'border-green-400 text-green-400 bg-green-400/10',
+  Recondicionado: 'border-gray-400 text-gray-400 bg-gray-400/10',
+};
 
 
 export default function ProductDetailPage() {
@@ -118,13 +125,15 @@ export default function ProductDetailPage() {
         </div>
         
         <div className="flex flex-col gap-6">
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-semibold text-brand">{product.category}</span>
-            {product.condition && product.condition !== 'Novo' && (
-              <Badge variant="outline">{product.condition}</Badge>
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge variant="secondary">{product.category}</Badge>
+            {product.condition && (
+              <Badge variant="outline" className={cn(conditionColors[product.condition])}>
+                {product.condition}
+              </Badge>
             )}
           </div>
-          <h1 className="text-4xl font-bold font-headline">{product.name}</h1>
+          <h1 className="text-3xl md:text-4xl font-bold font-headline">{product.name}</h1>
           
           <div className="flex items-baseline gap-4">
             <p className="text-3xl font-bold text-foreground">{formatPrice(product.sale_price ?? product.price)}</p>
@@ -133,9 +142,11 @@ export default function ProductDetailPage() {
             )}
           </div>
           
-          <div className="text-muted-foreground leading-relaxed">
-            <h2 className="text-xl font-semibold text-foreground mb-2">Descrição</h2>
-            <p>{product.long_description}</p>
+          <div className="space-y-3">
+            <h2 className="text-xl font-semibold text-foreground">Descrição</h2>
+            <p className="text-muted-foreground leading-relaxed">
+                {product.long_description}
+            </p>
           </div>
 
           <div className="flex flex-col sm:flex-row gap-4 mt-4">
