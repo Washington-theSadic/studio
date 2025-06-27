@@ -8,10 +8,9 @@ import { useCart } from '@/context/cart-context';
 import { useAuth } from '@/context/auth-context';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Trash2, ShoppingBag, Plus, Minus, Loader2, PlusCircle, CreditCard, Landmark, Barcode } from 'lucide-react';
+import { Trash2, ShoppingBag, Plus, Minus, Loader2, PlusCircle } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
-import { notifyAdminOfNewOrder } from '@/ai/flows/notify-admin-flow';
 import React, { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -19,6 +18,10 @@ import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { createCheckoutSession } from '../actions/stripe';
+import { loadStripe } from '@stripe/stripe-js';
+
+const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
 
 type Address = {
   id: string;
@@ -98,7 +101,7 @@ const AddressForm = ({ onAddressAdded, userId }: { onAddressAdded: () => void, u
 };
 
 export default function CartPage() {
-  const { cartItems, removeFromCart, updateQuantity, cartCount, totalPrice, clearCart } = useCart();
+  const { cartItems, removeFromCart, updateQuantity, cartCount, totalPrice } = useCart();
   const { currentUser, loading: authLoading } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
@@ -107,14 +110,7 @@ export default function CartPage() {
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [isAddressesLoading, setIsAddressesLoading] = useState(true);
   const [selectedAddressId, setSelectedAddressId] = useState<string | undefined>();
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string | undefined>();
   
-  const paymentMethods = [
-      { id: 'credit-card', name: 'Cartão de Crédito', icon: CreditCard },
-      { id: 'pix', name: 'Pix', icon: Landmark },
-      { id: 'boleto', name: 'Boleto Bancário', icon: Barcode },
-  ];
-
   const fetchAddresses = async () => {
     if (!currentUser) return;
     setIsAddressesLoading(true);
@@ -144,16 +140,16 @@ export default function CartPage() {
     return price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   };
 
-  const handleCheckout = async () => {
+ const handleCheckout = async () => {
     if (!currentUser) {
       router.push('/login?redirect=/cart');
       return;
     }
-    if (!selectedAddressId || !selectedPaymentMethod) {
+    if (!selectedAddressId) {
         toast({
             variant: 'destructive',
-            title: 'Informações Faltando',
-            description: 'Por favor, selecione um endereço de entrega e uma forma de pagamento.',
+            title: 'Endereço Faltando',
+            description: 'Por favor, selecione um endereço de entrega para continuar.',
         });
         return;
     }
@@ -161,43 +157,32 @@ export default function CartPage() {
     setIsCheckingOut(true);
 
     try {
-      const selectedAddress = addresses.find(a => a.id === selectedAddressId);
-      if (!selectedAddress) {
-          throw new Error("Endereço selecionado não encontrado.");
-      }
-      
-      const notificationPayload = {
-        customerName: currentUser.name,
-        totalPrice: totalPrice,
-        items: cartItems.map(item => ({
-          productName: item.product.name,
-          quantity: item.quantity,
-          price: item.product.sale_price ?? item.product.price,
-        })),
-        shippingAddress: `${selectedAddress.street}, ${selectedAddress.city}, ${selectedAddress.state} - ${selectedAddress.zip}`,
-        paymentMethod: selectedPaymentMethod,
-      };
-
-      await notifyAdminOfNewOrder(notificationPayload);
-
-      toast({
-        title: 'Pedido Finalizado!',
-        description: 'Seu pedido foi realizado com sucesso. Obrigado por comprar conosco!',
-      });
-      clearCart();
-      router.push('/');
-      
+        const { sessionId } = await createCheckoutSession(cartItems);
+        const stripe = await stripePromise;
+        if (stripe && sessionId) {
+            const { error } = await stripe.redirectToCheckout({ sessionId });
+            if (error) {
+                toast({
+                    variant: 'destructive',
+                    title: 'Erro no Checkout',
+                    description: error.message || 'Não foi possível redirecionar para o pagamento.',
+                });
+            }
+        } else {
+             throw new Error("Stripe.js ou Session ID não estão disponíveis.");
+        }
     } catch (error) {
-       console.error("Failed to send admin notification:", error);
+       console.error("Failed to create checkout session:", error);
        toast({
         variant: 'destructive',
         title: 'Ocorreu um erro',
-        description: 'Não foi possível finalizar seu pedido. Por favor, tente novamente.',
+        description: 'Não foi possível iniciar o processo de pagamento. Por favor, tente novamente.',
        });
     } finally {
         setIsCheckingOut(false);
     }
   };
+
 
   if (cartCount === 0) {
     return (
@@ -292,22 +277,6 @@ export default function CartPage() {
                      )}
                 </CardContent>
             </Card>
-            
-            {/* Payment Method */}
-            <Card>
-                <CardHeader><CardTitle>Forma de Pagamento</CardTitle></CardHeader>
-                <CardContent>
-                     <RadioGroup value={selectedPaymentMethod} onValueChange={setSelectedPaymentMethod} className="space-y-4">
-                        {paymentMethods.map(method => (
-                           <Label key={method.id} htmlFor={method.id} className="flex items-center gap-4 border rounded-md p-4 cursor-pointer hover:bg-accent has-[:checked]:bg-accent has-[:checked]:border-primary">
-                               <RadioGroupItem value={method.name} id={method.id} />
-                               <method.icon className="h-6 w-6 text-muted-foreground" />
-                               <span>{method.name}</span>
-                           </Label>
-                        ))}
-                    </RadioGroup>
-                </CardContent>
-            </Card>
         </div>
 
         <div className="lg:col-span-1 sticky top-24">
@@ -335,7 +304,7 @@ export default function CartPage() {
                 size="lg" 
                 className="w-full font-semibold" 
                 onClick={handleCheckout} 
-                disabled={isCheckingOut || !selectedAddressId || !selectedPaymentMethod || authLoading}
+                disabled={isCheckingOut || !selectedAddressId || authLoading}
               >
                 {isCheckingOut && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 {currentUser ? (isCheckingOut ? 'Finalizando...' : 'Finalizar Pedido') : 'Fazer Login para Finalizar'}
