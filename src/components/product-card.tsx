@@ -2,11 +2,12 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import type { Product } from '@/lib/products';
 import { Button } from '@/components/ui/button';
-import { Card, CardFooter, CardHeader } from '@/components/ui/card';
+import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ShoppingCart } from 'lucide-react';
+import { ShoppingCart, Zap } from 'lucide-react';
 import { useCart } from '@/context/cart-context';
 
 type ProductCardProps = {
@@ -15,17 +16,30 @@ type ProductCardProps = {
 
 export default function ProductCard({ product }: ProductCardProps) {
   const { addToCart } = useCart();
+  const router = useRouter();
+
+  const handleBuyNow = () => {
+    addToCart(product, 1, false);
+    router.push('/cart');
+  };
 
   const formatPrice = (price: number) => {
     return price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   };
+  
+  const hasSale = product.sale_price && product.sale_price < product.price;
 
   return (
     <Card className="group flex flex-col overflow-hidden h-full transition-all duration-300 bg-secondary/20 hover:bg-secondary/50 border-border/30 hover:border-brand hover:shadow-lg hover:shadow-brand/10">
       <CardHeader className="p-0 border-b border-border/30 relative">
-        {product.condition && product.condition !== 'Novo' && (
-          <Badge className="absolute top-3 left-3 z-10" variant="secondary">{product.condition}</Badge>
-        )}
+        <div className="absolute top-3 left-3 z-10 flex flex-col gap-2">
+            {product.condition && product.condition !== 'Novo' && (
+              <Badge className="border-amber-500 text-amber-500 bg-amber-500/10" variant="outline">{product.condition}</Badge>
+            )}
+            {hasSale && (
+                <Badge variant="destructive">Promoção</Badge>
+            )}
+        </div>
         <Link href={`/products/${product.id}`} className="block overflow-hidden">
           <div className="aspect-square relative w-full">
             <Image
@@ -39,32 +53,38 @@ export default function ProductCard({ product }: ProductCardProps) {
           </div>
         </Link>
       </CardHeader>
-      <div className="p-6 flex flex-col flex-grow">
+      <CardContent className="p-4 flex flex-col flex-grow">
         <div className="flex-grow">
            <Link href={`/products/${product.id}`}>
-            <h3 className="text-lg font-semibold leading-tight hover:text-brand transition-colors font-heading h-14">
+            <h3 className="text-lg font-semibold leading-tight hover:text-brand transition-colors font-heading min-h-[3rem]">
               {product.name}
             </h3>
           </Link>
-          <p className="text-sm text-muted-foreground mt-2 line-clamp-2 h-10">{product.description}</p>
+          <p className="text-sm text-muted-foreground mt-1 line-clamp-2 min-h-[2.5rem]">{product.description}</p>
         </div>
-         <div className="pt-4">
-            {product.sale_price ? (
-              <div className="flex items-baseline gap-2">
-                <p className="text-2xl font-bold text-foreground">{formatPrice(product.sale_price)}</p>
+         <div className="pt-2">
+            {hasSale ? (
+              <div className="flex items-baseline gap-2 flex-wrap">
+                <p className="text-2xl font-bold text-foreground">{formatPrice(product.sale_price!)}</p>
                 <p className="text-lg text-muted-foreground line-through">{formatPrice(product.price)}</p>
               </div>
             ) : (
               <p className="text-2xl font-bold text-foreground">{formatPrice(product.price)}</p>
             )}
         </div>
-      </div>
+      </CardContent>
 
-      <CardFooter className="p-6 pt-0">
-        <Button className="w-full" onClick={() => addToCart(product)}>
-          <ShoppingCart className="mr-2 h-4 w-4" />
-          Adicionar ao carrinho
-        </Button>
+      <CardFooter className="p-4 pt-0 mt-auto">
+        <div className="flex flex-col sm:flex-row gap-2 w-full">
+            <Button className="flex-1" onClick={() => addToCart(product)}>
+                <ShoppingCart className="mr-2 h-4 w-4" />
+                Adicionar
+            </Button>
+            <Button variant="outline" className="flex-1" onClick={handleBuyNow}>
+                 <Zap className="mr-2 h-4 w-4" />
+                Comprar
+            </Button>
+        </div>
       </CardFooter>
     </Card>
   );
