@@ -3,7 +3,7 @@
 
 import * as React from "react"
 import Image from "next/image"
-import { PlusCircle, MoreHorizontal, X, Loader2, Copy } from "lucide-react"
+import { PlusCircle, MoreHorizontal, X, Loader2, Copy, Trash2, Archive, ArchiveRestore, ChevronLeft, ChevronRight } from "lucide-react"
 
 import type { Product } from "@/lib/products"
 import { supabase, supabaseUrl } from "@/lib/supabase"
@@ -17,6 +17,7 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuTrigger,
+  DropdownMenuSeparator
 } from "@/components/ui/dropdown-menu"
 import {
   Table,
@@ -42,6 +43,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch"
 import { useToast } from "@/hooks/use-toast"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
+import { Checkbox } from "@/components/ui/checkbox"
 
 type FormState = Omit<Product, 'id' | 'created_at' | 'images'> & { images: (string | File)[] };
 
@@ -59,6 +61,8 @@ const getInitialFormState = (): FormState => ({
   images: [],
 });
 
+const PRODUCTS_PER_PAGE = 15;
+const productCategories: (Product['category'] | 'all')[] = ['all', 'Apple', 'Android', 'Minoxidil', 'Acessórios'];
 
 export default function DashboardProductsPage() {
   const [products, setProducts] = React.useState<Product[]>([])
@@ -69,7 +73,12 @@ export default function DashboardProductsPage() {
   const [formState, setFormState] = React.useState<FormState>(getInitialFormState());
   
   const [isSubmitting, setIsSubmitting] = React.useState(false)
+  const [isBulkSubmitting, setIsBulkSubmitting] = React.useState(false)
   const { toast } = useToast();
+
+  const [selectedProductIds, setSelectedProductIds] = React.useState<string[]>([]);
+  const [activeCategory, setActiveCategory] = React.useState<(Product['category'] | 'all')>('all');
+  const [currentPage, setCurrentPage] = React.useState(1);
 
   const fetchProducts = React.useCallback(async () => {
     setLoading(true);
@@ -86,6 +95,27 @@ export default function DashboardProductsPage() {
     fetchProducts();
   }, [fetchProducts]);
 
+  // Memoized data for filtering and pagination
+  const filteredProducts = React.useMemo(() => {
+    if (activeCategory === 'all') {
+      return products;
+    }
+    return products.filter(p => p.category === activeCategory);
+  }, [products, activeCategory]);
+
+  const totalPages = Math.ceil(filteredProducts.length / PRODUCTS_PER_PAGE);
+
+  const paginatedProducts = React.useMemo(() => {
+    const startIndex = (currentPage - 1) * PRODUCTS_PER_PAGE;
+    const endIndex = startIndex + PRODUCTS_PER_PAGE;
+    return filteredProducts.slice(startIndex, endIndex);
+  }, [filteredProducts, currentPage]);
+
+  React.useEffect(() => {
+      setCurrentPage(1);
+      setSelectedProductIds([]);
+  }, [activeCategory]);
+  
   const handleSheetOpen = (product: Product | null) => {
     setEditingProduct(product);
     if (product) {
@@ -124,7 +154,6 @@ export default function DashboardProductsPage() {
             .insert([duplicatedProductPayload]);
 
         if (error) {
-            console.error("Erro do Supabase ao duplicar:", JSON.stringify(error, null, 2));
             throw new Error(`Falha ao duplicar o produto: ${error.message}`);
         }
 
@@ -149,9 +178,7 @@ export default function DashboardProductsPage() {
             const bucketName = 'public-images';
             const filePaths = productToDelete.images
                 .map(url => {
-                    if (!url || !url.startsWith(supabaseUrl)) {
-                        return null;
-                    }
+                    if (!url || !url.startsWith(supabaseUrl)) return null;
                     try {
                         const urlObject = new URL(url);
                         const pathKey = `/storage/v1/object/public/${bucketName}/`;
@@ -167,11 +194,7 @@ export default function DashboardProductsPage() {
                 .filter((path): path is string => !!path);
 
             if (filePaths.length > 0) {
-                console.log("Tentando deletar os seguintes arquivos do storage:", filePaths);
-                const { error: imageError } = await supabase.storage
-                    .from(bucketName)
-                    .remove(filePaths);
-                
+                const { error: imageError } = await supabase.storage.from(bucketName).remove(filePaths);
                 if (imageError) {
                     throw new Error(`Falha ao remover imagens do armazenamento: ${imageError.message}`);
                 }
@@ -179,7 +202,6 @@ export default function DashboardProductsPage() {
         }
 
         const { error: dbError } = await supabase.from('products').delete().eq('id', productId);
-        
         if (dbError) {
             throw new Error(`O produto não foi deletado do banco de dados. Erro: ${dbError.message}`);
         }
@@ -188,7 +210,6 @@ export default function DashboardProductsPage() {
         fetchProducts();
 
     } catch (error: any) {
-        console.error("Erro detalhado ao deletar produto:", JSON.stringify(error, null, 2));
         const errorMessage = error.message || "Ocorreu um erro desconhecido ao tentar deletar o produto.";
         toast({ title: "Erro ao deletar produto", description: errorMessage, variant: "destructive" });
     }
@@ -224,75 +245,27 @@ export default function DashboardProductsPage() {
             } else {
                 const file = img;
                 const fileName = `${crypto.randomUUID()}-${file.name}`;
-                const { data, error: uploadError } = await supabase.storage
-                    .from('public-images')
-                    .upload(fileName, file);
-
-                if (uploadError) {
-                    throw new Error(`Falha no upload da imagem: ${uploadError.message}. Verifique as políticas de armazenamento (RLS) no Supabase.`);
-                }
-
-                const { data: { publicUrl } } = supabase.storage
-                    .from('public-images')
-                    .getPublicUrl(data.path);
-
+                const { data, error: uploadError } = await supabase.storage.from('public-images').upload(fileName, file);
+                if (uploadError) throw new Error(`Falha no upload da imagem: ${uploadError.message}.`);
+                const { data: { publicUrl } } = supabase.storage.from('public-images').getPublicUrl(data.path);
                 uploadedImageUrls.push(publicUrl);
             }
         }
 
-        const price = Number(formState.price);
-        if (isNaN(price)) {
-            throw new Error("O preço fornecido não é um número válido.");
-        }
-        
-        const stock = Number(formState.stock);
-        if (isNaN(stock) || !Number.isInteger(stock)) {
-            throw new Error("O estoque fornecido não é um número inteiro válido.");
-        }
-        
-        let sale_price: number | null = null;
-        if (formState.sale_price !== undefined && formState.sale_price !== null && String(formState.sale_price).trim() !== '') {
-            const parsedSalePrice = Number(formState.sale_price);
-            if (!isNaN(parsedSalePrice)) {
-                sale_price = parsedSalePrice;
-            } else {
-                 throw new Error("O preço promocional fornecido não é um número válido.");
-            }
-        }
-
         const productPayload = {
-            name: formState.name,
-            description: formState.description,
-            long_description: formState.long_description,
-            price: price,
-            sale_price: sale_price,
-            category: formState.category,
-            condition: formState.condition || 'Novo',
-            status: formState.status,
-            stock: stock,
-            featured: formState.featured,
+            ...formState,
             images: uploadedImageUrls.length > 0 ? uploadedImageUrls : ['https://placehold.co/600x600.png'],
+            price: Number(formState.price) || 0,
+            sale_price: formState.sale_price ? Number(formState.sale_price) : null,
+            stock: Number(formState.stock) || 0,
         };
         
-        console.log("Enviando para o Supabase:", productPayload);
+        const { error } = editingProduct
+          ? await supabase.from('products').update(productPayload).eq('id', editingProduct.id)
+          : await supabase.from('products').insert([productPayload]);
 
-        let apiError;
-        if (editingProduct) {
-            const { error } = await supabase
-                .from('products')
-                .update(productPayload)
-                .eq('id', editingProduct.id);
-            apiError = error;
-        } else {
-            const { error } = await supabase
-                .from('products')
-                .insert([productPayload]);
-            apiError = error;
-        }
-
-        if (apiError) {
-            console.error("Erro do Supabase:", JSON.stringify(apiError, null, 2));
-            throw new Error(`Falha ao salvar no banco de dados: ${apiError.message}`);
+        if (error) {
+            throw new Error(`Falha ao salvar no banco de dados: ${error.message}`);
         }
 
         toast({ title: `Produto ${editingProduct ? 'Atualizado' : 'Adicionado'}!`, description: `${productPayload.name} foi salvo com sucesso.` });
@@ -300,11 +273,74 @@ export default function DashboardProductsPage() {
         setIsSheetOpen(false);
 
     } catch (error: any) {
-        console.error("Erro detalhado ao salvar produto:", JSON.stringify(error, null, 2));
-        const errorMessage = error.message || "Ocorreu um erro desconhecido. Verifique as permissões de acesso (RLS) no Supabase e se todos os campos estão preenchidos corretamente.";
-        toast({ title: "Erro ao salvar produto", description: errorMessage, variant: "destructive" });
+        toast({ title: "Erro ao salvar produto", description: error.message, variant: "destructive" });
     } finally {
         setIsSubmitting(false);
+    }
+  };
+  
+  const handleBulkStatusChange = async (status: 'ativo' | 'rascunho') => {
+    if (selectedProductIds.length === 0) return;
+    setIsBulkSubmitting(true);
+    try {
+      const { error } = await supabase.from('products').update({ status }).in('id', selectedProductIds);
+      if (error) throw error;
+      toast({ title: 'Sucesso!', description: `${selectedProductIds.length} produto(s) foram atualizados.` });
+      await fetchProducts();
+      setSelectedProductIds([]);
+    } catch (error: any) {
+      toast({ title: 'Erro ao atualizar produtos', description: error.message, variant: 'destructive' });
+    } finally {
+      setIsBulkSubmitting(false);
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedProductIds.length === 0) return;
+    setIsBulkSubmitting(true);
+
+    const productsToDelete = products.filter(p => selectedProductIds.includes(p.id));
+    if (productsToDelete.length === 0) {
+        toast({ title: "Erro", description: "Produtos selecionados não encontrados.", variant: "destructive" });
+        setIsBulkSubmitting(false);
+        return;
+    }
+
+    try {
+        const allImageUrls = productsToDelete.flatMap(p => p.images || []);
+        if (allImageUrls.length > 0) {
+            const bucketName = 'public-images';
+            const filePaths = allImageUrls
+                .map(url => {
+                    if (!url || !url.startsWith(supabaseUrl)) return null;
+                    try {
+                        const urlObject = new URL(url);
+                        const pathKey = `/storage/v1/object/public/${bucketName}/`;
+                        if (urlObject.pathname.includes(pathKey)) {
+                            return decodeURIComponent(urlObject.pathname.split(pathKey)[1]);
+                        }
+                    } catch (e) { return null; }
+                    return null;
+                })
+                .filter((path): path is string => !!path);
+
+            if (filePaths.length > 0) {
+                const { error: imageError } = await supabase.storage.from(bucketName).remove(filePaths);
+                if (imageError) throw new Error(`Falha ao remover imagens: ${imageError.message}`);
+            }
+        }
+
+        const { error: dbError } = await supabase.from('products').delete().in('id', selectedProductIds);
+        if (dbError) throw dbError;
+        
+        toast({ title: "Produtos Removidos!", description: `${selectedProductIds.length} produto(s) foram removidos com sucesso.` });
+        await fetchProducts();
+        setSelectedProductIds([]);
+
+    } catch (error: any) {
+        toast({ title: "Erro ao deletar produtos", description: error.message, variant: "destructive" });
+    } finally {
+        setIsBulkSubmitting(false);
     }
   };
   
@@ -312,15 +348,69 @@ export default function DashboardProductsPage() {
     return price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   };
 
+  const handlePageChange = (newPage: number) => {
+    if (newPage >= 1 && newPage <= totalPages) {
+        setCurrentPage(newPage);
+    }
+  };
+  
   return (
     <>
-      <div className="flex items-center justify-end gap-2">
+      <div className="flex items-center gap-2 mb-4">
         <Button size="sm" className="h-8 gap-1" onClick={() => handleSheetOpen(null)}>
           <PlusCircle className="h-3.5 w-3.5" />
           <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
             Adicionar Produto
           </span>
         </Button>
+        <div className="ml-auto flex items-center gap-2">
+         {selectedProductIds.length > 0 && (
+             <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm" className="h-8 gap-1" disabled={isBulkSubmitting}>
+                        {isBulkSubmitting && <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />}
+                        Ações em Massa ({selectedProductIds.length})
+                    </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                    <DropdownMenuItem onSelect={() => handleBulkStatusChange('ativo')} disabled={isBulkSubmitting}>
+                        <ArchiveRestore className="mr-2 h-4 w-4" />
+                        Ativar Selecionados
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onSelect={() => handleBulkStatusChange('rascunho')} disabled={isBulkSubmitting}>
+                        <Archive className="mr-2 h-4 w-4" />
+                        Mover para Rascunho
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                         <Button
+                            variant="ghost"
+                            className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 w-full justify-start font-normal text-destructive hover:bg-destructive/10"
+                            disabled={isBulkSubmitting}
+                          >
+                           <Trash2 className="mr-2 h-4 w-4" /> Deletar Selecionados
+                          </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                          <AlertDialogHeader>
+                              <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                  Essa ação não pode ser desfeita. Isso irá deletar permanentemente os {selectedProductIds.length} produtos selecionados e suas imagens.
+                              </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                              <AlertDialogAction onClick={handleBulkDelete} className="bg-destructive hover:bg-destructive/90">
+                                  Deletar
+                              </AlertDialogAction>
+                          </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                </DropdownMenuContent>
+            </DropdownMenu>
+         )}
+        </div>
       </div>
       <Card>
         <CardHeader>
@@ -328,6 +418,18 @@ export default function DashboardProductsPage() {
           <CardDescription>
             Gerencie seus produtos aqui. Adicione, edite ou remova produtos.
           </CardDescription>
+           <div className="pt-4">
+            <Select value={activeCategory} onValueChange={(value) => setActiveCategory(value as any)}>
+              <SelectTrigger className="w-full md:w-[200px]">
+                <SelectValue placeholder="Filtrar por categoria" />
+              </SelectTrigger>
+              <SelectContent>
+                {productCategories.map(cat => (
+                  <SelectItem key={cat} value={cat}>{cat === 'all' ? 'Todas as Categorias' : cat}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </CardHeader>
         <CardContent>
            {loading ? (
@@ -338,12 +440,27 @@ export default function DashboardProductsPage() {
           <Table>
             <TableHeader>
               <TableRow>
+                 <TableHead className="w-[40px]">
+                    <Checkbox
+                        checked={paginatedProducts.length > 0 && selectedProductIds.length === paginatedProducts.length}
+                        onCheckedChange={(checked) => {
+                           const pageIds = paginatedProducts.map(p => p.id);
+                           if (checked) {
+                               const newSelectedIds = [...new Set([...selectedProductIds, ...pageIds])];
+                               setSelectedProductIds(newSelectedIds);
+                           } else {
+                               setSelectedProductIds(selectedProductIds.filter(id => !pageIds.includes(id)));
+                           }
+                        }}
+                        aria-label="Selecionar todos na página atual"
+                    />
+                 </TableHead>
                 <TableHead className="hidden w-[100px] sm:table-cell">
                   <span className="sr-only">Imagem</span>
                 </TableHead>
                 <TableHead>Nome</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Condição</TableHead>
+                <TableHead className="hidden md:table-cell">Categoria</TableHead>
                 <TableHead className="hidden md:table-cell">Preço</TableHead>
                 <TableHead className="hidden md:table-cell">Estoque</TableHead>
                 <TableHead>
@@ -352,8 +469,21 @@ export default function DashboardProductsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {products.map(product => (
-                <TableRow key={product.id}>
+              {paginatedProducts.map(product => (
+                <TableRow key={product.id} data-state={selectedProductIds.includes(product.id) ? "selected" : ""}>
+                    <TableCell>
+                        <Checkbox 
+                            checked={selectedProductIds.includes(product.id)}
+                            onCheckedChange={(checked) => {
+                                if (checked) {
+                                    setSelectedProductIds([...selectedProductIds, product.id]);
+                                } else {
+                                    setSelectedProductIds(selectedProductIds.filter(id => id !== product.id));
+                                }
+                            }}
+                            aria-label={`Selecionar produto ${product.name}`}
+                        />
+                    </TableCell>
                   <TableCell className="hidden sm:table-cell">
                     <Image
                       alt={product.name}
@@ -370,9 +500,7 @@ export default function DashboardProductsPage() {
                       {product.status}
                     </Badge>
                   </TableCell>
-                  <TableCell>
-                    <Badge variant="outline">{product.condition}</Badge>
-                  </TableCell>
+                  <TableCell className="hidden md:table-cell">{product.category}</TableCell>
                   <TableCell className="hidden md:table-cell">{formatPrice(product.price)}</TableCell>
                   <TableCell className="hidden md:table-cell">{product.stock}</TableCell>
                   <TableCell>
@@ -391,9 +519,9 @@ export default function DashboardProductsPage() {
                         <DropdownMenuLabel>Ações</DropdownMenuLabel>
                         <DropdownMenuItem onClick={() => handleSheetOpen(product)}>Editar</DropdownMenuItem>
                         <DropdownMenuItem onClick={() => handleDuplicate(product.id)}>
-                          <Copy />
                           Duplicar
                         </DropdownMenuItem>
+                        <DropdownMenuSeparator />
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
                              <Button
@@ -429,8 +557,21 @@ export default function DashboardProductsPage() {
         </CardContent>
         <CardFooter>
           <div className="text-xs text-muted-foreground">
-             Mostrando <strong>{products.length}</strong> de <strong>{products.length}</strong> {products.length === 1 ? 'produto' : 'produtos'}
+             {selectedProductIds.length} de {filteredProducts.length} produto(s) selecionado(s).
           </div>
+          {totalPages > 1 && (
+            <div className="ml-auto flex items-center space-x-2">
+              <Button variant="outline" size="sm" onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1}>
+                  Anterior
+              </Button>
+              <span className="text-xs text-muted-foreground">
+                  Página {currentPage} de {totalPages}
+              </span>
+              <Button variant="outline" size="sm" onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages}>
+                  Próximo
+              </Button>
+            </div>
+          )}
         </CardFooter>
       </Card>
       
