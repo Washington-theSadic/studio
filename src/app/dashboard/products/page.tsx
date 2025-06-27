@@ -3,7 +3,7 @@
 
 import * as React from "react"
 import Image from "next/image"
-import { PlusCircle, MoreHorizontal, X, Loader2 } from "lucide-react"
+import { PlusCircle, MoreHorizontal, X, Loader2, Copy } from "lucide-react"
 
 import type { Product } from "@/lib/products"
 import { supabase, supabaseUrl } from "@/lib/supabase"
@@ -101,6 +101,41 @@ export default function DashboardProductsPage() {
     }
     setIsSheetOpen(true);
   };
+
+  const handleDuplicate = async (productId: string) => {
+    const productToDuplicate = products.find(p => p.id === productId);
+    if (!productToDuplicate) {
+        toast({ title: "Erro", description: "Produto não encontrado.", variant: "destructive" });
+        return;
+    }
+
+    const { id, created_at, ...newProductData } = productToDuplicate;
+
+    const duplicatedProductPayload = {
+        ...newProductData,
+        name: `${newProductData.name} (Cópia)`,
+        status: 'rascunho' as const,
+        featured: false,
+    };
+
+    try {
+        const { error } = await supabase
+            .from('products')
+            .insert([duplicatedProductPayload]);
+
+        if (error) {
+            console.error("Erro do Supabase ao duplicar:", JSON.stringify(error, null, 2));
+            throw new Error(`Falha ao duplicar o produto: ${error.message}`);
+        }
+
+        toast({ title: "Produto Duplicado!", description: `O produto "${productToDuplicate.name}" foi duplicado com sucesso.` });
+        fetchProducts();
+
+    } catch (error: any) {
+        const errorMessage = error.message || "Ocorreu um erro desconhecido ao tentar duplicar o produto.";
+        toast({ title: "Erro ao duplicar produto", description: errorMessage, variant: "destructive" });
+    }
+  };
   
   const handleDelete = async (productId: string) => {
     const productToDelete = products.find(p => p.id === productId);
@@ -110,7 +145,6 @@ export default function DashboardProductsPage() {
     }
 
     try {
-        // Passo 1: Remover imagens do armazenamento
         if (productToDelete.images && productToDelete.images.length > 0) {
             const bucketName = 'public-images';
             const filePaths = productToDelete.images
@@ -122,7 +156,6 @@ export default function DashboardProductsPage() {
                         const urlObject = new URL(url);
                         const pathKey = `/storage/v1/object/public/${bucketName}/`;
                         if (urlObject.pathname.includes(pathKey)) {
-                            // Use decodeURIComponent para lidar com caracteres especiais (ex: espaços) nos nomes dos arquivos.
                             return decodeURIComponent(urlObject.pathname.split(pathKey)[1]);
                         }
                     } catch (e) {
@@ -145,7 +178,6 @@ export default function DashboardProductsPage() {
             }
         }
 
-        // Passo 2: Remover o produto do banco de dados
         const { error: dbError } = await supabase.from('products').delete().eq('id', productId);
         
         if (dbError) {
@@ -153,7 +185,7 @@ export default function DashboardProductsPage() {
         }
 
         toast({ title: "Produto Removido!", description: "O produto e suas imagens foram removidos com sucesso." });
-        fetchProducts(); // Atualiza a lista de produtos
+        fetchProducts();
 
     } catch (error: any) {
         console.error("Erro detalhado ao deletar produto:", JSON.stringify(error, null, 2));
@@ -208,7 +240,6 @@ export default function DashboardProductsPage() {
             }
         }
 
-        // Validar e converter campos numéricos de forma robusta
         const price = Number(formState.price);
         if (isNaN(price)) {
             throw new Error("O preço fornecido não é um número válido.");
@@ -359,6 +390,10 @@ export default function DashboardProductsPage() {
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Ações</DropdownMenuLabel>
                         <DropdownMenuItem onClick={() => handleSheetOpen(product)}>Editar</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleDuplicate(product.id)}>
+                          <Copy />
+                          Duplicar
+                        </DropdownMenuItem>
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
                              <Button
