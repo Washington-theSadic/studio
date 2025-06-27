@@ -30,8 +30,9 @@ export async function createCheckoutSession(cartItems: CartItem[], customerEmail
 
   const origin = headers().get('origin') || 'http://localhost:9002';
 
+  let session;
   try {
-    const session = await stripe.checkout.sessions.create({
+    session = await stripe.checkout.sessions.create({
       payment_method_types: ['card', 'boleto'],
       line_items,
       mode: 'payment',
@@ -43,15 +44,15 @@ export async function createCheckoutSession(cartItems: CartItem[], customerEmail
         allowed_countries: ['BR'],
       },
     });
-
-    if (session.url) {
-      redirect(session.url);
-    } else {
-      throw new Error('Failed to create Stripe Checkout session.');
-    }
   } catch (error: any) {
     console.error('Error creating Stripe session:', error);
     // Propagate the actual error message for better debugging.
     throw new Error(error.message || 'Could not create checkout session.');
+  }
+  
+  if (session.url) {
+    redirect(session.url);
+  } else {
+    throw new Error('Failed to create Stripe Checkout session.');
   }
 }
