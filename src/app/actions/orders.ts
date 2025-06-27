@@ -1,10 +1,33 @@
 
 'use server';
 
-import { supabase } from '@/lib/supabase';
 import type { Order, OrderItem } from '@/lib/orders';
 import { notifyAdminOfNewOrder } from '@/ai/flows/notify-admin-flow';
 import type { NewOrderNotificationInput } from '@/ai/flows/notify-admin-flow';
+import { createServerClient, type CookieOptions } from '@supabase/ssr';
+import { cookies } from 'next/headers';
+
+// This function creates a Supabase client that is authenticated for the current user's request.
+function createSupabaseClient() {
+  const cookieStore = cookies();
+  return createServerClient(
+    'https://sctvzllsrwghijlcioxz.supabase.co',
+    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNjdHZ6bGxzcndnaGlqbGNpb3h6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA5NTg2ODEsImV4cCI6MjA2NjUzNDY4MX0.pcQlAVWTZPMhAhf-4vS-DBu4bZIe7C2g0nt8CVK230I',
+    {
+      cookies: {
+        get(name: string) {
+          return cookieStore.get(name)?.value;
+        },
+        set(name: string, value: string, options: CookieOptions) {
+          try { cookieStore.set({ name, value, ...options }); } catch (error) {}
+        },
+        remove(name: string, options: CookieOptions) {
+          try { cookieStore.delete({ name, ...options }); } catch (error) {}
+        },
+      },
+    }
+  );
+}
 
 export type CreateOrderInput = {
   userId: string;
@@ -16,7 +39,8 @@ export type CreateOrderInput = {
   paymentMethod: string;
 };
 
-export async function createOrder(input: CreateOrderInput): Promise<Order> {
+export async function createOrder(input: CreateOrderInput): Promise<{ data: Order | null; error: string | null }> {
+  const supabase = createSupabaseClient();
   const orderPayload = {
     user_id: input.userId,
     customer_name: input.customerName,
@@ -36,7 +60,7 @@ export async function createOrder(input: CreateOrderInput): Promise<Order> {
 
   if (error || !data) {
     console.error('Error creating order:', error);
-    throw new Error('Could not create order.');
+    return { data: null, error: error?.message || 'Could not create order.' };
   }
   
   const notificationInput: NewOrderNotificationInput = {
@@ -52,11 +76,12 @@ export async function createOrder(input: CreateOrderInput): Promise<Order> {
   };
   await notifyAdminOfNewOrder(notificationInput);
 
-  return data as Order;
+  return { data: data as Order, error: null };
 }
 
 
 export async function getOrders(): Promise<{ data: Order[] | null, error: string | null }> {
+  const supabase = createSupabaseClient();
   const { data, error } = await supabase
     .from('orders')
     .select('*')
@@ -66,6 +91,7 @@ export async function getOrders(): Promise<{ data: Order[] | null, error: string
 }
 
 export async function getOrderById(id: string): Promise<{ data: Order | null, error: string | null }> {
+  const supabase = createSupabaseClient();
   const { data, error } = await supabase
     .from('orders')
     .select('*')
@@ -76,6 +102,7 @@ export async function getOrderById(id: string): Promise<{ data: Order | null, er
 }
 
 export async function updateOrderStatus(id: string, status: Order['status']): Promise<{ data: Order | null, error: string | null }> {
+  const supabase = createSupabaseClient();
   const { data, error } = await supabase
     .from('orders')
     .update({ status: status })
@@ -87,6 +114,7 @@ export async function updateOrderStatus(id: string, status: Order['status']): Pr
 }
 
 export async function getOrdersByUserId(userId: string): Promise<{ data: Order[] | null, error: string | null }> {
+  const supabase = createSupabaseClient();
   const { data, error } = await supabase
     .from('orders')
     .select('*')

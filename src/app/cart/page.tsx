@@ -169,7 +169,7 @@ export default function CartPage() {
         price: item.product.sale_price ?? item.product.price,
       }));
 
-      await createOrder({
+      const { data: orderData, error: orderError } = await createOrder({
         userId: currentUser.id,
         customerName: currentUser.name,
         customerEmail: currentUser.email,
@@ -178,6 +178,10 @@ export default function CartPage() {
         shippingAddress: `${address.street}\n${address.city}, ${address.state} - ${address.zip}`,
         paymentMethod: 'Cartão ou Boleto',
       });
+
+      if (orderError) {
+        throw new Error(orderError);
+      }
 
       const checkoutUrl = await createCheckoutSession(cartItems, currentUser.email);
       if (checkoutUrl && window.top) {
@@ -219,7 +223,7 @@ export default function CartPage() {
         price: item.product.sale_price ?? item.product.price,
       }));
 
-      await createOrder({
+      const { data: orderData, error: orderError } = await createOrder({
         userId: currentUser.id,
         customerName: currentUser.name,
         customerEmail: currentUser.email,
@@ -228,6 +232,10 @@ export default function CartPage() {
         shippingAddress: `${address.street}\n${address.city}, ${address.state} - ${address.zip}`,
         paymentMethod: paymentMethod,
       });
+
+      if (orderError) {
+        throw new Error(orderError);
+      }
 
       const itemsList = cartItems
         .map(item => `- ${item.quantity}x ${item.product.name}`)
