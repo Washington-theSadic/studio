@@ -30,7 +30,6 @@ function createSupabaseClient() {
 }
 
 export type CreateOrderInput = {
-  userId: string;
   customerName: string;
   customerEmail: string;
   totalPrice: number;
@@ -41,8 +40,18 @@ export type CreateOrderInput = {
 
 export async function createOrder(input: CreateOrderInput): Promise<{ data: Order | null; error: string | null }> {
   const supabase = createSupabaseClient();
+  
+  // Explicitly refresh session to ensure JWT is up to date
+  await supabase.auth.refreshSession();
+
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { data: null, error: 'User not authenticated.' };
+  }
+
   const orderPayload = {
-    user_id: input.userId,
+    user_id: user.id,
     customer_name: input.customerName,
     customer_email: input.customerEmail,
     total_price: input.totalPrice,

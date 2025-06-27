@@ -170,7 +170,6 @@ export default function CartPage() {
       }));
 
       const { data: orderData, error: orderError } = await createOrder({
-        userId: currentUser.id,
         customerName: currentUser.name,
         customerEmail: currentUser.email,
         totalPrice: totalPrice,
@@ -224,7 +223,6 @@ export default function CartPage() {
       }));
 
       const { data: orderData, error: orderError } = await createOrder({
-        userId: currentUser.id,
         customerName: currentUser.name,
         customerEmail: currentUser.email,
         totalPrice: totalPrice,
