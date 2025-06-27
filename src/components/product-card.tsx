@@ -58,34 +58,34 @@ export default function ProductCard({ product }: ProductCardProps) {
           </div>
         </Link>
       </CardHeader>
-      <CardContent className="p-4 flex flex-col flex-grow">
+      <CardContent className="p-3 flex flex-col flex-grow">
         <div className="flex-grow">
            <Link href={`/products/${product.id}`}>
-            <h3 className="text-lg font-semibold leading-tight hover:text-brand transition-colors font-heading min-h-[3rem]">
+            <h3 className="text-base font-semibold leading-tight hover:text-brand transition-colors font-heading h-10 flex items-center">
               {product.name}
             </h3>
           </Link>
-          <p className="text-sm text-muted-foreground mt-1 line-clamp-2 min-h-[2.5rem]">{product.description}</p>
+          <p className="text-xs text-muted-foreground mt-1 line-clamp-2 h-8">{product.description}</p>
         </div>
          <div className="pt-2">
             {hasSale ? (
               <div className="flex items-baseline gap-2 flex-wrap">
-                <p className="text-2xl font-bold text-foreground">{formatPrice(product.sale_price!)}</p>
-                <p className="text-lg text-muted-foreground line-through">{formatPrice(product.price)}</p>
+                <p className="text-xl font-bold text-foreground">{formatPrice(product.sale_price!)}</p>
+                <p className="text-base text-muted-foreground line-through">{formatPrice(product.price)}</p>
               </div>
             ) : (
-              <p className="text-2xl font-bold text-foreground">{formatPrice(product.price)}</p>
+              <p className="text-xl font-bold text-foreground">{formatPrice(product.price)}</p>
             )}
         </div>
       </CardContent>
 
-      <CardFooter className="p-4 pt-0 mt-auto">
+      <CardFooter className="p-3 pt-0 mt-auto">
         <div className="flex flex-col gap-2 w-full">
-            <Button className="w-full" onClick={handleBuyNow}>
+            <Button size="sm" className="w-full" onClick={handleBuyNow}>
                  <Zap className="mr-2 h-4 w-4" />
                 Comprar Agora
             </Button>
-            <Button variant="outline" className="w-full" onClick={() => addToCart(product)}>
+            <Button size="sm" variant="outline" className="w-full" onClick={() => addToCart(product)}>
                 <ShoppingCart className="mr-2 h-4 w-4" />
                 Adicionar ao Carrinho
             </Button>

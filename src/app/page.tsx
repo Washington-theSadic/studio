@@ -70,7 +70,7 @@ export default async function Home() {
         className="container mx-auto px-4 animate-fade-in-up"
         style={{ animationDelay: '0.8s', animationFillMode: 'forwards', opacity: 0 }}
       >
-        <h2 className="text-3xl font-bold text-center mb-12 font-heading">Navegue por Categorias</h2>
+        <h2 className="text-2xl md:text-3xl font-bold text-center mb-8 font-heading">Navegue por Categorias</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-8">
           {categories.map((category) => (
             <Link href={category.href} key={category.name}>
@@ -91,8 +91,8 @@ export default async function Home() {
           className="container mx-auto px-4 animate-fade-in-up"
           style={{ animationDelay: '1.0s', animationFillMode: 'forwards', opacity: 0 }}
         >
-          <div className="flex justify-between items-center mb-12">
-              <h2 className="text-3xl font-bold font-heading flex items-center gap-2"><Tags className="text-brand"/>Produtos em Promoção</h2>
+          <div className="flex justify-between items-center mb-8">
+              <h2 className="text-2xl md:text-3xl font-bold font-heading flex items-center gap-2"><Tags className="text-brand"/>Produtos em Promoção</h2>
               <Button variant="link" asChild className="hidden sm:flex">
                   <Link href="/products">
                       Ver todos
@@ -109,8 +109,8 @@ export default async function Home() {
         className="container mx-auto px-4 pb-16 md:pb-24 animate-fade-in-up"
         style={{ animationDelay: '1.4s', animationFillMode: 'forwards', opacity: 0 }}
       >
-        <div className="flex justify-between items-center mb-12">
-            <h2 className="text-3xl font-bold font-heading">Produtos em Destaque</h2>
+        <div className="flex justify-between items-center mb-8">
+            <h2 className="text-2xl md:text-3xl font-bold font-heading">Produtos em Destaque</h2>
             <Button variant="link" asChild className="hidden sm:flex">
                 <Link href="/products">
                     Ver todos

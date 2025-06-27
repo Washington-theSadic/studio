@@ -24,7 +24,7 @@ export default function ProductCarousel({ products, animationDelayStart = 0 }: P
       >
         <CarouselContent className="-ml-4">
           {products.map((product, index) => (
-            <CarouselItem key={index} className="pl-4 basis-4/5 sm:basis-1/2">
+            <CarouselItem key={index} className="pl-4 basis-[70%] sm:basis-1/2">
               <ProductCard product={product} />
             </CarouselItem>
           ))}
