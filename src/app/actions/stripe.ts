@@ -2,6 +2,7 @@
 'use server';
 
 import { headers } from 'next/headers';
+import { redirect } from 'next/navigation';
 import Stripe from 'stripe';
 import type { CartItem } from '@/context/cart-context';
 
@@ -11,7 +12,7 @@ if (!process.env.STRIPE_SECRET_KEY) {
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
-export async function createCheckoutSession(cartItems: CartItem[], customerEmail: string) {
+export async function createCheckoutSession(cartItems: CartItem[], customerEmail: string): Promise<void> {
   const line_items = cartItems.map(item => {
     return {
       price_data: {
@@ -44,7 +45,7 @@ export async function createCheckoutSession(cartItems: CartItem[], customerEmail
     });
 
     if (session.url) {
-      return { url: session.url };
+      redirect(session.url);
     } else {
       throw new Error('Failed to create Stripe Checkout session.');
     }

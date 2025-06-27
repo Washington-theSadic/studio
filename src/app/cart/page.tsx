@@ -154,12 +154,9 @@ export default function CartPage() {
     setIsCheckingOut(true);
 
     try {
-        const { url } = await createCheckoutSession(cartItems, currentUser.email);
-        if (url) {
-            window.top.location.href = url;
-        } else {
-             throw new Error("URL de checkout do Stripe não está disponível.");
-        }
+      // The server action will now handle the redirect itself.
+      await createCheckoutSession(cartItems, currentUser.email);
+      // If the redirect is successful, the code below will not be executed.
     } catch (error: any) {
        console.error("Failed to create checkout session:", error);
        toast({
@@ -167,8 +164,9 @@ export default function CartPage() {
         title: 'Ocorreu um erro',
         description: error.message || 'Não foi possível iniciar o processo de pagamento. Por favor, tente novamente.',
        });
-    } finally {
-        setIsCheckingOut(false);
+       // We only set checking out to false in case of an error,
+       // because on success the user is navigated away.
+       setIsCheckingOut(false);
     }
   };
 
