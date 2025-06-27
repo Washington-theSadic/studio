@@ -19,6 +19,7 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog';
+import { getOrdersByUserId } from '../actions/orders';
 
 type Address = {
   id: string;
@@ -152,14 +153,10 @@ export default function AccountPage() {
   
   const fetchUserOrders = async (userId: string) => {
     setIsOrdersLoading(true);
-    const { data, error } = await supabase
-        .from('orders')
-        .select('*')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false });
+    const { data, error } = await getOrdersByUserId(userId);
 
     if (error) {
-        toast({ title: "Erro ao buscar pedidos", description: error.message, variant: "destructive" });
+        toast({ title: "Erro ao buscar pedidos", description: error, variant: "destructive" });
     } else {
         setUserOrders(data || []);
     }

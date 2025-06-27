@@ -85,3 +85,13 @@ export async function updateOrderStatus(id: string, status: Order['status']): Pr
 
   return { data, error: error ? error.message : null };
 }
+
+export async function getOrdersByUserId(userId: string): Promise<{ data: Order[] | null, error: string | null }> {
+  const { data, error } = await supabase
+    .from('orders')
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false });
+
+  return { data, error: error ? error.message : null };
+}
