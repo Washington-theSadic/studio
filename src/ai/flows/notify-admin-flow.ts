@@ -18,7 +18,7 @@ const CartItemSchema = z.object({
 });
 
 // Defining the input schema for the notification flow
-export const NewOrderNotificationInputSchema = z.object({
+const NewOrderNotificationInputSchema = z.object({
   customerName: z.string().describe('The name of the customer who placed the order.'),
   totalPrice: z.number().describe('The total price of the order.'),
   items: z.array(CartItemSchema).describe('The list of items in the order.'),

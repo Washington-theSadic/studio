@@ -44,10 +44,14 @@ export default function Header() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
 
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+  
   const isAdmin = currentUser?.role === 'admin';
 
   useEffect(() => {
-    setIsMounted(true);
+    if (!isMounted) return;
 
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 10);
@@ -59,7 +63,7 @@ export default function Header() {
     return () => {
       window.removeEventListener('scroll', handleScroll);
     };
-  }, []);
+  }, [isMounted]);
 
   const handleLinkClick = () => {
     setIsSheetOpen(false);
@@ -107,7 +111,7 @@ export default function Header() {
     );
   };
   
-  const headerClass = isScrolled ? "bg-background/80 backdrop-blur-sm border-b border-border/30" : "bg-transparent";
+  const headerClass = isMounted && isScrolled ? "bg-background/80 backdrop-blur-sm border-b border-border/30" : "bg-transparent";
 
   if (!isMounted) {
     return (
