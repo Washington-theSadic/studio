@@ -110,11 +110,6 @@ export default function ProductDetailPage() {
                 <CarouselItem key={index}>
                   <Card>
                     <CardContent className="p-0 aspect-square relative">
-                       {product.condition && (
-                        <Badge variant="outline" className={cn('absolute top-4 left-4 z-10', conditionClasses[product.condition])}>
-                          {product.condition}
-                        </Badge>
-                      )}
                       <Image
                         src={img}
                         alt={`${product.name} - imagem ${index + 1}`}
@@ -140,6 +135,11 @@ export default function ProductDetailPage() {
         <div className="flex flex-col gap-4">
            <div className="flex flex-wrap items-center gap-2">
             <Badge variant="secondary">{product.category}</Badge>
+            {product.condition && (
+              <Badge variant="outline" className={cn(conditionClasses[product.condition])}>
+                {product.condition}
+              </Badge>
+            )}
           </div>
           <h1 className="text-3xl md:text-4xl font-bold font-headline">{product.name}</h1>
           
