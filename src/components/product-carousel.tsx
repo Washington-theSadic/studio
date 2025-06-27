@@ -1,3 +1,4 @@
+
 "use client";
 
 import type { Product } from '@/lib/products';
@@ -17,7 +18,7 @@ export default function ProductCarousel({ products, animationDelayStart = 0 }: P
     return (
       <Carousel
         opts={{
-          align: "start",
+          align: "center",
           loop: false,
         }}
         className="w-full"
