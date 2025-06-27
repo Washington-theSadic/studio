@@ -101,7 +101,12 @@ export default function ProductDetailPage() {
   return (
     <div className="container mx-auto px-4 py-8 animate-fade-in-up">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 items-start">
-        <div>
+        <div className="relative">
+           {product.condition && (
+            <Badge variant="outline" className={cn('absolute top-4 left-4 z-10 border-transparent', conditionClasses[product.condition])}>
+              {product.condition}
+            </Badge>
+          )}
           <Carousel className="w-full" opts={{ loop: true }}>
             <CarouselContent>
               {product.images.map((img, index) => (
@@ -127,11 +132,6 @@ export default function ProductDetailPage() {
         <div className="flex flex-col gap-6">
           <div className="flex flex-wrap items-center gap-2">
             <Badge variant="secondary">{product.category}</Badge>
-            {product.condition && (
-              <Badge variant="outline" className={cn('border-transparent', conditionClasses[product.condition])}>
-                {product.condition}
-              </Badge>
-            )}
           </div>
           <h1 className="text-3xl md:text-4xl font-bold font-headline">{product.name}</h1>
           
