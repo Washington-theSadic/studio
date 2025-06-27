@@ -136,9 +136,13 @@ export default function ProductDetailPage() {
            <div className="flex flex-wrap items-center gap-2">
             <Badge variant="secondary">{product.category}</Badge>
             {product.condition && (
-              <Badge variant="outline" className={cn(conditionClasses[product.condition])}>
-                {product.condition}
-              </Badge>
+              product.condition === 'Recondicionado' ? (
+                <Badge variant="secondary">{product.condition}</Badge>
+              ) : (
+                <Badge variant="outline" className={cn(conditionClasses[product.condition])}>
+                  {product.condition}
+                </Badge>
+              )
             )}
           </div>
           <h1 className="text-3xl md:text-4xl font-bold font-headline">{product.name}</h1>
