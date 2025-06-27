@@ -44,7 +44,7 @@ function ProductPageSkeleton() {
 const conditionClasses: Record<Product['condition'], string> = {
   Novo: 'border-amber-400 text-amber-400 bg-amber-400/10',
   Lacrado: 'tag-lacrado-animated text-black font-semibold',
-  Recondicionado: 'bg-foreground text-background border-transparent',
+  Recondicionado: 'bg-black/40 text-white backdrop-blur-sm border-white/20',
 };
 
 
@@ -104,17 +104,17 @@ export default function ProductDetailPage() {
     <div className="container mx-auto px-4 py-8 animate-fade-in-up">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 items-start">
         <div className="relative">
-           {product.condition && (
-            <Badge variant="outline" className={cn('absolute top-4 left-4 z-10 border-transparent', conditionClasses[product.condition])}>
-              {product.condition}
-            </Badge>
-          )}
           <Carousel className="w-full" opts={{ loop: true }}>
             <CarouselContent>
               {product.images.map((img, index) => (
                 <CarouselItem key={index}>
                   <Card>
                     <CardContent className="p-0 aspect-square relative">
+                       {product.condition && (
+                        <Badge variant="outline" className={cn('absolute top-4 left-4 z-10', conditionClasses[product.condition])}>
+                          {product.condition}
+                        </Badge>
+                      )}
                       <Image
                         src={img}
                         alt={`${product.name} - imagem ${index + 1}`}

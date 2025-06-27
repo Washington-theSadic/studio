@@ -19,7 +19,7 @@ type ProductCardProps = {
 const conditionClasses: Record<Product['condition'], string> = {
   Novo: 'border-amber-400 text-amber-400 bg-amber-400/10',
   Lacrado: 'tag-lacrado-animated text-black font-semibold',
-  Recondicionado: 'bg-foreground text-background border-transparent',
+  Recondicionado: 'bg-black/40 text-white backdrop-blur-sm border-white/20',
 };
 
 export default function ProductCard({ product }: ProductCardProps) {
@@ -41,12 +41,12 @@ export default function ProductCard({ product }: ProductCardProps) {
     <Card className="group flex flex-col overflow-hidden h-full transition-all duration-300 bg-secondary/20 hover:bg-secondary/50 border-border/30 hover:border-brand hover:shadow-lg hover:shadow-brand/10">
       <CardHeader className="p-0 border-b border-border/30 relative">
         <Link href={`/products/${product.id}`} className="block overflow-hidden">
-          {product.condition && (
-             <Badge variant="outline" className={cn('absolute top-3 left-3 z-10 border-transparent', conditionClasses[product.condition])}>
+          <div className="aspect-square relative w-full">
+            {product.condition && (
+             <Badge variant="outline" className={cn('absolute top-3 left-3 z-10', conditionClasses[product.condition])}>
                {product.condition}
              </Badge>
            )}
-          <div className="aspect-square relative w-full">
             <Image
               src={product.images[0]}
               alt={product.name}
