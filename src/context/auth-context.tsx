@@ -11,6 +11,7 @@ type User = {
   name: string;
   email: string;
   role: 'admin' | 'user';
+  avatar_url?: string;
 };
 
 type AuthContextType = {
@@ -19,6 +20,7 @@ type AuthContextType = {
   register: (name: string, email: string, pass: string) => Promise<{ error: AuthError | null }>;
   logout: () => Promise<void>;
   loading: boolean;
+  updateAvatar: (file: File) => Promise<{ error: any | null }>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -39,6 +41,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           id: supabaseUser.id,
           email: supabaseUser.email,
           name: supabaseUser.user_metadata.name || supabaseUser.email,
+          avatar_url: supabaseUser.user_metadata.avatar_url,
           role: userRole,
         };
         setCurrentUser(user);
@@ -71,6 +74,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           }
         }
      });
+
+     if (data.user && !error) {
+        // Assign a default avatar on registration
+        await supabase.auth.updateUser({
+            data: {
+                avatar_url: `https://i.pravatar.cc/150?u=${data.user.id}`
+            }
+        });
+     }
+
      setLoading(false);
      return { error };
   };
@@ -81,12 +94,62 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     router.push('/login');
   };
 
+  const updateAvatar = async (file: File) => {
+    if (!currentUser) {
+        return { error: new Error("Usuário não autenticado.") };
+    }
+
+    try {
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${currentUser.id}-${Date.now()}.${fileExt}`;
+        const filePath = `avatars/${fileName}`;
+
+        // Upload image to supabase storage
+        const { error: uploadError } = await supabase.storage
+            .from('public-images')
+            .upload(filePath, file, { upsert: true });
+
+        if (uploadError) {
+            throw uploadError;
+        }
+
+        // Get public URL
+        const { data: { publicUrl } } = supabase.storage
+            .from('public-images')
+            .getPublicUrl(filePath);
+
+        // Update user metadata
+        const { data: updatedUserData, error: updateError } = await supabase.auth.updateUser({
+            data: { avatar_url: publicUrl }
+        });
+
+        if (updateError) {
+            throw updateError;
+        }
+
+        // Manually update the currentUser state to reflect changes immediately
+        if (updatedUserData.user) {
+             setCurrentUser(prevUser => prevUser ? {
+                ...prevUser,
+                avatar_url: updatedUserData.user?.user_metadata.avatar_url,
+            } : null);
+        }
+
+        return { error: null };
+    } catch (error: any) {
+        console.error("Avatar update error:", error);
+        return { error: new Error(error.message || "Ocorreu um erro desconhecido.") };
+    }
+  };
+
+
   const value = {
     currentUser,
     login,
     register,
     logout,
     loading,
+    updateAvatar,
   };
 
   return (

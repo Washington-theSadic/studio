@@ -4,7 +4,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/context/auth-context';
 import { useRouter } from 'next/navigation';
-import { User, MapPin, Package, KeyRound, Camera } from 'lucide-react';
+import { User, MapPin, Package, KeyRound, Camera, Loader2 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -49,12 +49,13 @@ const PageSection = ({ icon, title, description, children }: { icon: React.React
 
 
 export default function AccountPage() {
-  const { currentUser, loading, logout } = useAuth();
+  const { currentUser, loading, logout, updateAvatar } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [isUploading, setIsUploading] = useState(false);
 
   useEffect(() => {
     if (!loading && !currentUser) {
@@ -73,6 +74,32 @@ export default function AccountPage() {
         description: "Suas informações foram salvas. (Simulação)"
     })
   }
+
+  const handleAvatarChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !currentUser) {
+      return;
+    }
+
+    setIsUploading(true);
+    const { error } = await updateAvatar(file);
+    setIsUploading(false);
+
+    if (error) {
+      toast({
+        title: "Erro ao atualizar foto",
+        description: error.message,
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Foto de perfil atualizada!",
+        description: "Sua nova foto já está visível.",
+      });
+    }
+     // Reset file input
+    event.target.value = '';
+  };
 
   if (loading || !currentUser) {
     return (
@@ -106,15 +133,20 @@ export default function AccountPage() {
     <div className="container mx-auto px-4 py-8 md:py-12 animate-fade-in-up">
       <div className="flex flex-col md:flex-row items-center gap-6 mb-12">
         <div className="relative">
+          {isUploading && (
+              <div className="absolute inset-0 bg-black/60 rounded-full flex items-center justify-center z-10">
+                  <Loader2 className="h-8 w-8 animate-spin text-white" />
+              </div>
+          )}
           <Avatar className="h-24 w-24 border-4 border-primary">
-            <AvatarImage src={`https://i.pravatar.cc/150?u=${currentUser.id}`} alt={currentUser.name} data-ai-hint="avatar person" />
+            <AvatarImage src={currentUser.avatar_url || `https://i.pravatar.cc/150?u=${currentUser.id}`} alt={currentUser.name} data-ai-hint="avatar person" />
             <AvatarFallback>{currentUser.name.substring(0, 2).toUpperCase()}</AvatarFallback>
           </Avatar>
-           <Button variant="outline" size="icon" className="absolute bottom-0 right-0 rounded-full bg-background cursor-pointer">
-                <label htmlFor="avatar-upload" className="cursor-pointer">
+           <Button variant="outline" size="icon" className="absolute bottom-0 right-0 rounded-full bg-background cursor-pointer" disabled={isUploading}>
+                <label htmlFor="avatar-upload" className={cn("cursor-pointer", isUploading && "cursor-not-allowed")}>
                     <Camera className="h-4 w-4" />
                 </label>
-                <input id="avatar-upload" type="file" className="sr-only" />
+                <input id="avatar-upload" type="file" className="sr-only" onChange={handleAvatarChange} accept="image/png, image/jpeg, image/webp" disabled={isUploading} />
                 <span className="sr-only">Alterar foto</span>
             </Button>
         </div>
