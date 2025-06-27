@@ -9,8 +9,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartConfig } from "@/components/ui/chart"
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts"
 import type { Order } from "@/lib/orders"
-import { supabase } from "@/lib/supabase"
 import { Skeleton } from "@/components/ui/skeleton"
+import { getOrders } from "@/app/actions/orders"
+import { useToast } from "@/hooks/use-toast"
 
 const chartData = [
   { month: "Janeiro", desktop: 186, mobile: 80 },
@@ -93,28 +94,32 @@ function StatCardSkeleton() {
 export default function DashboardPage() {
   const [orders, setOrders] = React.useState<Order[]>([]);
   const [loading, setLoading] = React.useState(true);
+  const { toast } = useToast();
   
   const [timeAgo, setTimeAgo] = React.useState<Record<string, string>>({});
 
   React.useEffect(() => {
     const fetchOrders = async () => {
       setLoading(true);
-      const { data, error } = await supabase.from('orders').select('*').order('created_at', { ascending: false });
+      const { data, error } = await getOrders();
       if (error) {
         console.error("Error fetching orders:", error);
+        toast({ title: "Erro ao buscar pedidos", description: error.message, variant: "destructive" });
       } else {
         setOrders(data || []);
       }
       setLoading(false);
     };
     fetchOrders();
-  }, []);
+  }, [toast]);
 
   const recentOrders = orders.slice(0, 5);
   const totalRevenue = orders.reduce((sum, order) => sum + order.total_price, 0);
   const totalSales = orders.length;
 
   React.useEffect(() => {
+    if (recentOrders.length === 0) return;
+
     const calculateTimes = () => {
         const newTimes: Record<string, string> = {};
         recentOrders.forEach(order => {

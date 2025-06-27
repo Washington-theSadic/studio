@@ -12,8 +12,8 @@ import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import type { Order } from '@/lib/orders';
-import { supabase } from '@/lib/supabase';
 import { Skeleton } from '@/components/ui/skeleton';
+import { getOrderById, updateOrderStatus } from '@/app/actions/orders';
 
 type Status = Order['status'];
 
@@ -61,11 +61,12 @@ export default function OrderDetailPage() {
   const [currentStatus, setCurrentStatus] = React.useState<Status>('Pendente');
 
   React.useEffect(() => {
-    if (!id) return;
+    if (!id || typeof id !== 'string') return;
     const fetchOrder = async () => {
       setLoading(true);
-      const { data, error } = await supabase.from('orders').select('*').eq('id', id).single();
+      const { data, error } = await getOrderById(id);
       if (error || !data) {
+        toast({ title: 'Erro ao buscar pedido', description: error?.message || 'Pedido não encontrado.', variant: 'destructive' });
         notFound();
       } else {
         setOrder(data);
@@ -74,7 +75,7 @@ export default function OrderDetailPage() {
       setLoading(false);
     };
     fetchOrder();
-  }, [id]);
+  }, [id, toast]);
 
   if (loading) {
     return <OrderDetailSkeleton />;
@@ -103,11 +104,9 @@ export default function OrderDetailPage() {
   };
   
   const handleSaveChanges = async () => {
+    if (!order) return;
     setIsSaving(true);
-    const { error } = await supabase
-      .from('orders')
-      .update({ status: currentStatus })
-      .eq('id', order.id);
+    const { error } = await updateOrderStatus(order.id, currentStatus);
 
     if (error) {
        toast({ title: 'Erro ao salvar', description: error.message, variant: 'destructive' });
@@ -115,7 +114,7 @@ export default function OrderDetailPage() {
       setOrder({ ...order, status: currentStatus });
       toast({
         title: 'Status do Pedido Atualizado!',
-        description: `O status do pedido #${order.id} foi alterado para "${currentStatus}".`,
+        description: `O status do pedido #${order.id.substring(0, 8)}... foi alterado para "${currentStatus}".`,
       });
     }
     setIsSaving(false);

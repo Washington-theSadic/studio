@@ -54,3 +54,34 @@ export async function createOrder(input: CreateOrderInput): Promise<Order> {
 
   return data as Order;
 }
+
+
+export async function getOrders(): Promise<{ data: Order[] | null, error: any | null }> {
+  const { data, error } = await supabase
+    .from('orders')
+    .select('*')
+    .order('created_at', { ascending: false });
+  
+  return { data, error };
+}
+
+export async function getOrderById(id: string): Promise<{ data: Order | null, error: any | null }> {
+  const { data, error } = await supabase
+    .from('orders')
+    .select('*')
+    .eq('id', id)
+    .single();
+
+  return { data, error };
+}
+
+export async function updateOrderStatus(id: string, status: Order['status']): Promise<{ data: Order | null, error: any | null }> {
+  const { data, error } = await supabase
+    .from('orders')
+    .update({ status: status })
+    .eq('id', id)
+    .select()
+    .single();
+
+  return { data, error };
+}

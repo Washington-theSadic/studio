@@ -25,7 +25,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { cn } from "@/lib/utils"
 import { useRouter } from "next/navigation"
 import type { Order } from "@/lib/orders"
-import { supabase } from "@/lib/supabase"
+import { getOrders } from "@/app/actions/orders"
+import { useToast } from "@/hooks/use-toast"
 
 type Status = Order['status'];
 
@@ -42,20 +43,22 @@ export default function DashboardOrdersPage() {
   const [loading, setLoading] = React.useState(true);
   const [activeTab, setActiveTab] = React.useState<Status | "Todos">("Todos");
   const router = useRouter();
+  const { toast } = useToast();
 
   React.useEffect(() => {
     const fetchOrders = async () => {
         setLoading(true);
-        const { data, error } = await supabase.from('orders').select('*').order('created_at', { ascending: false });
+        const { data, error } = await getOrders();
         if (error) {
             console.error("Error fetching orders:", error);
+            toast({ title: "Erro ao buscar pedidos", description: error.message, variant: "destructive" });
         } else {
             setOrders(data || []);
         }
         setLoading(false);
     };
     fetchOrders();
-  }, []);
+  }, [toast]);
 
   const filteredOrders = React.useMemo(() => {
     if (activeTab === "Todos") return orders;
