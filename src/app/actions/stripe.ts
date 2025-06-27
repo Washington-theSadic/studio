@@ -2,7 +2,6 @@
 'use server';
 
 import { headers } from 'next/headers';
-import { redirect } from 'next/navigation';
 import Stripe from 'stripe';
 import type { CartItem } from '@/context/cart-context';
 
@@ -12,7 +11,7 @@ if (!process.env.STRIPE_SECRET_KEY) {
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
-export async function createCheckoutSession(cartItems: CartItem[], customerEmail: string): Promise<void> {
+export async function createCheckoutSession(cartItems: CartItem[], customerEmail: string): Promise<string> {
   const line_items = cartItems.map(item => {
     return {
       price_data: {
@@ -33,7 +32,7 @@ export async function createCheckoutSession(cartItems: CartItem[], customerEmail
   let session;
   try {
     session = await stripe.checkout.sessions.create({
-      payment_method_types: ['card', 'boleto', 'pix'],
+      payment_method_types: ['card', 'boleto'],
       line_items,
       mode: 'payment',
       customer_email: customerEmail,
@@ -50,7 +49,7 @@ export async function createCheckoutSession(cartItems: CartItem[], customerEmail
   }
   
   if (session.url) {
-    redirect(session.url);
+    return session.url;
   } else {
     throw new Error('Failed to create Stripe Checkout session.');
   }

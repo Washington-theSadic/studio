@@ -155,15 +155,22 @@ export default function CartPage() {
 
     setIsCheckingOut(true);
 
-    // This Server Action will redirect the user. 
-    // It should not be wrapped in a try/catch block on the client,
-    // as that would prevent the redirect from working.
-    await createCheckoutSession(cartItems, currentUser.email);
-    
-    // On a successful redirect, this line won't be reached.
-    // If an error occurs in the action before the redirect, 
-    // Next.js's default error handling will take over.
-    setIsCheckingOut(false);
+    try {
+      const checkoutUrl = await createCheckoutSession(cartItems, currentUser.email);
+      // Use window.top.location.href to escape the iframe
+      if (checkoutUrl && window.top) {
+        window.top.location.href = checkoutUrl;
+      } else {
+        throw new Error('Não foi possível obter a URL de checkout.');
+      }
+    } catch (error: any) {
+      toast({
+        title: "Erro ao finalizar o pedido",
+        description: error.message || "Ocorreu um erro inesperado. Tente novamente.",
+        variant: "destructive"
+      });
+      setIsCheckingOut(false);
+    }
   };
 
 
