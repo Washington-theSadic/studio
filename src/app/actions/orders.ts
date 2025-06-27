@@ -40,9 +40,6 @@ export type CreateOrderInput = {
 
 export async function createOrder(input: CreateOrderInput): Promise<{ data: Order | null; error: string | null }> {
   const supabase = createSupabaseClient();
-  
-  // Explicitly refresh session to ensure JWT is up to date
-  await supabase.auth.refreshSession();
 
   const { data: { user } } = await supabase.auth.getUser();
 
