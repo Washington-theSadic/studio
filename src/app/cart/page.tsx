@@ -7,9 +7,8 @@ import { useRouter } from 'next/navigation';
 import { useCart } from '@/context/cart-context';
 import { useAuth } from '@/context/auth-context';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Trash2, ShoppingBag } from 'lucide-react';
+import { Trash2, ShoppingBag, Plus, Minus } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
 
@@ -57,62 +56,73 @@ export default function CartPage() {
         <div className="lg:col-span-2">
           <div className="flex flex-col gap-6">
             {cartItems.map(({ product, quantity }) => (
-              <Card key={product.id} className="flex items-center p-4">
-                <div className="relative h-24 w-24 rounded-md overflow-hidden mr-6">
-                  <Image
-                    src={product.images[0]}
-                    alt={product.name}
-                    fill
-                    sizes="(max-width: 768px) 25vw, 10vw"
-                    className="object-cover"
-                    data-ai-hint={`${product.category.toLowerCase()} product`}
-                  />
-                </div>
-                <div className="flex-grow">
-                  <Link href={`/products/${product.id}`} className="font-semibold hover:text-brand">{product.name}</Link>
-                  <p className="text-muted-foreground text-sm">{product.category}</p>
-                  <p className="font-bold mt-1">{formatPrice(product.price)}</p>
-                </div>
-                <div className="flex items-center gap-4">
-                  <Input
-                    type="number"
-                    min="1"
-                    value={quantity}
-                    onChange={(e) => updateQuantity(product.id, parseInt(e.target.value))}
-                    className="w-20 text-center"
-                    aria-label={`Quantidade para ${product.name}`}
-                  />
-                  <Button variant="ghost" size="icon" onClick={() => removeFromCart(product.id)} aria-label={`Remover ${product.name} do carrinho`}>
-                    <Trash2 className="h-5 w-5 text-destructive" />
-                  </Button>
-                </div>
-              </Card>
+               <Card key={product.id} className="overflow-hidden shadow-sm">
+                    <div className="flex gap-4 p-4">
+                        <div className="relative h-24 w-24 flex-shrink-0 overflow-hidden rounded-lg border">
+                            <Image
+                                src={product.images[0]}
+                                alt={product.name}
+                                fill
+                                sizes="100px"
+                                className="object-cover"
+                                data-ai-hint={`${product.category.toLowerCase()} product`}
+                            />
+                        </div>
+
+                        <div className="flex-1 min-w-0 flex flex-col justify-between">
+                            <div className="flex justify-between items-start gap-2">
+                                <div className="flex-1">
+                                    <Link href={`/products/${product.id}`} className="font-semibold hover:text-brand line-clamp-2 leading-tight">
+                                        {product.name}
+                                    </Link>
+                                    <p className="text-muted-foreground text-sm mt-1">{product.category}</p>
+                                </div>
+                                <Button variant="ghost" size="icon" onClick={() => removeFromCart(product.id)} aria-label={`Remover ${product.name} do carrinho`} className="h-8 w-8 flex-shrink-0 text-muted-foreground hover:text-destructive">
+                                    <Trash2 className="h-4 w-4" />
+                                </Button>
+                            </div>
+                            
+                            <div className="flex justify-between items-center mt-2">
+                                <p className="font-bold text-lg">{formatPrice(product.sale_price ?? product.price)}</p>
+                                 <div className="flex items-center gap-2">
+                                    <Button variant="outline" size="icon" className="h-8 w-8 rounded-full" onClick={() => updateQuantity(product.id, quantity - 1)} disabled={quantity <= 1}>
+                                        <Minus className="h-4 w-4" />
+                                    </Button>
+                                    <span className="font-bold text-base w-8 text-center">{quantity}</span>
+                                    <Button variant="outline" size="icon" className="h-8 w-8 rounded-full" onClick={() => updateQuantity(product.id, quantity + 1)}>
+                                        <Plus className="h-4 w-4" />
+                                    </Button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </Card>
             ))}
           </div>
         </div>
 
         <div className="lg:col-span-1 sticky top-24">
-          <Card>
+          <Card className="shadow-lg">
             <CardHeader>
-              <CardTitle>Resumo do Pedido</CardTitle>
+              <CardTitle className="text-xl">Resumo do Pedido</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex justify-between">
+            <CardContent className="space-y-4 text-sm">
+              <div className="flex justify-between text-muted-foreground">
                 <span>Subtotal ({cartCount} {cartCount > 1 ? 'itens' : 'item'})</span>
                 <span>{formatPrice(totalPrice)}</span>
               </div>
-              <div className="flex justify-between">
+              <div className="flex justify-between text-muted-foreground">
                 <span>Frete</span>
                 <span className="font-semibold text-brand">Grátis</span>
               </div>
               <Separator />
-              <div className="flex justify-between font-bold text-lg">
+              <div className="flex justify-between font-bold text-base">
                 <span>Total</span>
                 <span>{formatPrice(totalPrice)}</span>
               </div>
             </CardContent>
             <CardFooter>
-              <Button size="lg" className="w-full" onClick={handleCheckout}>
+              <Button size="lg" className="w-full font-semibold" onClick={handleCheckout}>
                 {currentUser ? 'Finalizar Pedido' : 'Fazer Login para Finalizar'}
               </Button>
             </CardFooter>
