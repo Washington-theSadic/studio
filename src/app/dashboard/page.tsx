@@ -111,7 +111,7 @@ export default function DashboardPage() {
       setLoading(false);
     };
     fetchOrders();
-  }, [toast]);
+  }, []);
 
   const recentOrders = orders.slice(0, 5);
   const totalRevenue = orders.reduce((sum, order) => sum + order.total_price, 0);
