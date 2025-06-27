@@ -42,8 +42,8 @@ export async function createCheckoutSession(cartItems: CartItem[]) {
       },
     });
 
-    if (session.id) {
-      return { sessionId: session.id };
+    if (session.url) {
+      return { url: session.url };
     } else {
       throw new Error('Failed to create Stripe Checkout session.');
     }

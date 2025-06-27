@@ -19,9 +19,6 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { createCheckoutSession } from '../actions/stripe';
-import { loadStripe } from '@stripe/stripe-js';
-
-const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
 
 type Address = {
   id: string;
@@ -157,26 +154,18 @@ export default function CartPage() {
     setIsCheckingOut(true);
 
     try {
-        const { sessionId } = await createCheckoutSession(cartItems);
-        const stripe = await stripePromise;
-        if (stripe && sessionId) {
-            const { error } = await stripe.redirectToCheckout({ sessionId });
-            if (error) {
-                toast({
-                    variant: 'destructive',
-                    title: 'Erro no Checkout',
-                    description: error.message || 'Não foi possível redirecionar para o pagamento.',
-                });
-            }
+        const { url } = await createCheckoutSession(cartItems);
+        if (url) {
+            window.top.location.href = url;
         } else {
-             throw new Error("Stripe.js ou Session ID não estão disponíveis.");
+             throw new Error("URL de checkout do Stripe não está disponível.");
         }
-    } catch (error) {
+    } catch (error: any) {
        console.error("Failed to create checkout session:", error);
        toast({
         variant: 'destructive',
         title: 'Ocorreu um erro',
-        description: 'Não foi possível iniciar o processo de pagamento. Por favor, tente novamente.',
+        description: error.message || 'Não foi possível iniciar o processo de pagamento. Por favor, tente novamente.',
        });
     } finally {
         setIsCheckingOut(false);
