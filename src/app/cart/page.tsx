@@ -7,12 +7,96 @@ import { useRouter } from 'next/navigation';
 import { useCart } from '@/context/cart-context';
 import { useAuth } from '@/context/auth-context';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Trash2, ShoppingBag, Plus, Minus, Loader2 } from 'lucide-react';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Trash2, ShoppingBag, Plus, Minus, Loader2, MapPin, PlusCircle } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { createCheckoutSession } from '../actions/stripe';
+import { supabase } from '@/lib/supabase';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Label } from '@/components/ui/label';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Skeleton } from '@/components/ui/skeleton';
+
+type Address = {
+  id: string;
+  user_id: string;
+  street: string;
+  city: string;
+  state: string;
+  zip: string;
+};
+
+const AddressForm = ({ onAddressAdded, userId }: { onAddressAdded: () => void, userId: string }) => {
+    const { toast } = useToast();
+    const [newAddress, setNewAddress] = useState({ street: '', city: '', state: '', zip: '' });
+    const [isSubmittingAddress, setIsSubmittingAddress] = useState(false);
+    const [isDialogOpen, setIsDialogOpen] = useState(false);
+
+    const handleAddAddress = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!userId) return;
+        setIsSubmittingAddress(true);
+
+        const { error } = await supabase.from('addresses').insert({ ...newAddress, user_id: userId });
+
+        if (error) {
+            toast({ title: "Erro ao adicionar endereço", description: error.message, variant: "destructive" });
+        } else {
+            toast({ title: "Endereço adicionado com sucesso!" });
+            setNewAddress({ street: '', city: '', state: '', zip: '' });
+            onAddressAdded();
+            setIsDialogOpen(false);
+        }
+        setIsSubmittingAddress(false);
+    };
+
+    return (
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+                <Button variant="outline"><PlusCircle className="mr-2 h-4 w-4" /> Adicionar Novo Endereço</Button>
+            </DialogTrigger>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Adicionar Novo Endereço</DialogTitle>
+                    <DialogDescription>Preencha os campos abaixo para adicionar um novo endereço de entrega.</DialogDescription>
+                </DialogHeader>
+                <form onSubmit={handleAddAddress} className="space-y-4">
+                    <div className="space-y-1">
+                        <Label htmlFor="street">Rua e Número</Label>
+                        <Input id="street" value={newAddress.street} onChange={(e) => setNewAddress(p => ({ ...p, street: e.target.value }))} required disabled={isSubmittingAddress} />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-1">
+                            <Label htmlFor="city">Cidade</Label>
+                            <Input id="city" value={newAddress.city} onChange={(e) => setNewAddress(p => ({ ...p, city: e.target.value }))} required disabled={isSubmittingAddress} />
+                        </div>
+                        <div className="space-y-1">
+                            <Label htmlFor="state">Estado</Label>
+                            <Input id="state" value={newAddress.state} onChange={(e) => setNewAddress(p => ({ ...p, state: e.target.value }))} required disabled={isSubmittingAddress} />
+                        </div>
+                    </div>
+                    <div className="space-y-1">
+                        <Label htmlFor="zip">CEP</Label>
+                        <Input id="zip" value={newAddress.zip} onChange={(e) => setNewAddress(p => ({ ...p, zip: e.target.value }))} required disabled={isSubmittingAddress} />
+                    </div>
+                    <DialogFooter>
+                        <DialogClose asChild>
+                           <Button type="button" variant="outline" disabled={isSubmittingAddress}>Cancelar</Button>
+                        </DialogClose>
+                        <Button type="submit" disabled={isSubmittingAddress}>
+                            {isSubmittingAddress && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            Salvar Endereço
+                        </Button>
+                    </DialogFooter>
+                </form>
+            </DialogContent>
+        </Dialog>
+    );
+};
+
 
 export default function CartPage() {
   const { cartItems, removeFromCart, updateQuantity, cartCount, totalPrice } = useCart();
@@ -22,6 +106,38 @@ export default function CartPage() {
   
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   
+  const [addresses, setAddresses] = useState<Address[]>([]);
+  const [selectedAddress, setSelectedAddress] = useState<string | undefined>(undefined);
+  const [isAddressesLoading, setIsAddressesLoading] = useState(true);
+
+  const fetchAddresses = async (userId: string) => {
+    setIsAddressesLoading(true);
+    const { data, error } = await supabase
+        .from('addresses')
+        .select('*')
+        .eq('user_id', userId);
+
+    if (error) {
+        toast({ title: "Erro ao buscar endereços", description: error.message, variant: "destructive" });
+    } else {
+        setAddresses(data || []);
+        if (data && data.length > 0 && !selectedAddress) {
+            setSelectedAddress(data[0].id);
+        }
+    }
+    setIsAddressesLoading(false);
+  };
+  
+  useEffect(() => {
+    if (currentUser && !authLoading) {
+      fetchAddresses(currentUser.id);
+    } else if (!authLoading) {
+      // If user is not logged in, stop loading
+      setIsAddressesLoading(false);
+    }
+  }, [currentUser, authLoading]);
+
+
   const formatPrice = (price: number) => {
     return price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   };
@@ -30,6 +146,11 @@ export default function CartPage() {
     if (!currentUser) {
       router.push('/login?redirect=/cart');
       return;
+    }
+
+    if (!selectedAddress) {
+        toast({ title: "Endereço necessário", description: "Por favor, selecione um endereço de entrega.", variant: "destructive" });
+        return;
     }
 
     setIsCheckingOut(true);
@@ -113,6 +234,46 @@ export default function CartPage() {
                   </div>
                 </CardContent>
             </Card>
+
+            {/* Address Selection */}
+            {currentUser && (
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <MapPin className="h-5 w-5" />
+                            Endereço de Entrega
+                        </CardTitle>
+                        <CardDescription>
+                            Selecione ou adicione um endereço para a entrega do seu pedido.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        {isAddressesLoading ? (
+                            <div className="space-y-4">
+                                <Skeleton className="h-12 w-full" />
+                                <Skeleton className="h-12 w-full" />
+                            </div>
+                        ) : addresses.length > 0 ? (
+                            <RadioGroup value={selectedAddress} onValueChange={setSelectedAddress} className="space-y-4">
+                                {addresses.map(address => (
+                                    <Label key={address.id} htmlFor={address.id} className="flex items-start space-x-4 border rounded-md p-4 cursor-pointer hover:bg-accent has-[:checked]:bg-accent has-[:checked]:border-primary">
+                                        <RadioGroupItem value={address.id} id={address.id} />
+                                        <div className="grid gap-1.5">
+                                            <p className="font-semibold">{address.street}</p>
+                                            <p className="text-sm text-muted-foreground">{address.city}, {address.state} - {address.zip}</p>
+                                        </div>
+                                    </Label>
+                                ))}
+                            </RadioGroup>
+                        ) : (
+                             <p className="text-muted-foreground text-center py-4">Você ainda não tem endereços cadastrados. Adicione um para continuar.</p>
+                        )}
+                    </CardContent>
+                    <CardFooter className="border-t pt-6 flex justify-end">
+                       {currentUser && <AddressForm userId={currentUser.id} onAddressAdded={() => fetchAddresses(currentUser.id)} />}
+                    </CardFooter>
+                </Card>
+            )}
         </div>
 
         <div className="lg:col-span-1 sticky top-24">
@@ -140,7 +301,7 @@ export default function CartPage() {
                 size="lg" 
                 className="w-full font-semibold" 
                 onClick={handleCheckout} 
-                disabled={isCheckingOut || authLoading}
+                disabled={isCheckingOut || authLoading || (!!currentUser && (!selectedAddress || addresses.length === 0))}
               >
                 {isCheckingOut && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 {currentUser ? (isCheckingOut ? 'Finalizando...' : 'Finalizar Pedido') : 'Fazer Login para Finalizar'}
