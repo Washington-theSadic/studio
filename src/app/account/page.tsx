@@ -151,9 +151,9 @@ export default function AccountPage() {
     setIsAddressesLoading(false);
   };
   
-  const fetchUserOrders = async (userId: string) => {
+  const fetchUserOrders = async () => {
     setIsOrdersLoading(true);
-    const { data, error } = await getOrdersByUserId(userId);
+    const { data, error } = await getOrdersByUserId();
 
     if (error) {
         toast({ title: "Erro ao buscar pedidos", description: error, variant: "destructive" });
@@ -172,7 +172,7 @@ export default function AccountPage() {
       setName(currentUser.name);
       setEmail(currentUser.email);
       fetchAddresses(currentUser.id);
-      fetchUserOrders(currentUser.id);
+      fetchUserOrders();
     }
   }, [currentUser, loading, router]);
   
