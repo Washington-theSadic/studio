@@ -33,16 +33,12 @@ export async function createCheckoutSession(cartItems: CartItem[], customerEmail
   let session;
   try {
     session = await stripe.checkout.sessions.create({
-      payment_method_types: ['card', 'boleto'],
+      payment_method_types: ['card', 'boleto', 'pix'],
       line_items,
       mode: 'payment',
       customer_email: customerEmail,
       success_url: `${origin}/?success=true`,
       cancel_url: `${origin}/cart?canceled=true`,
-      billing_address_collection: 'required',
-      shipping_address_collection: {
-        allowed_countries: ['BR'],
-      },
       phone_number_collection: {
         enabled: true,
       },
