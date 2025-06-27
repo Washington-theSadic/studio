@@ -8,7 +8,7 @@ import { supabase } from '@/lib/supabase';
 import type { Product } from '@/lib/products';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
+import { Carousel, CarouselContent, CarouselItem } from '@/components/ui/carousel';
 import { useCart } from '@/context/cart-context';
 import { ShoppingCart } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -93,9 +93,9 @@ export default function ProductDetailPage() {
 
   return (
     <div className="container mx-auto px-4 py-8 animate-fade-in-up">
-      <div className="grid md:grid-cols-2 gap-12 items-start">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 items-start">
         <div>
-          <Carousel className="w-full">
+          <Carousel className="w-full" opts={{ loop: true }}>
             <CarouselContent>
               {product.images.map((img, index) => (
                 <CarouselItem key={index}>
@@ -114,8 +114,6 @@ export default function ProductDetailPage() {
                 </CarouselItem>
               ))}
             </CarouselContent>
-            <CarouselPrevious className="left-4" />
-            <CarouselNext className="right-4" />
           </Carousel>
         </div>
         

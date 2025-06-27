@@ -31,7 +31,7 @@ export default async function Home() {
   const saleProducts: Product[] = saleProductsData ?? [];
 
   return (
-    <div className="flex flex-col gap-16 md:gap-24">
+    <div className="flex flex-col gap-24 md:gap-32">
       {/* Hero Section */}
       <section className="relative pt-32 pb-20 md:pt-48 md:pb-32 text-center">
         <div className="container mx-auto px-4 z-10 relative">
@@ -100,7 +100,7 @@ export default async function Home() {
                   </Link>
               </Button>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
             {saleProducts.map((product, i) => (
                <div 
                   key={product.id}
@@ -128,7 +128,7 @@ export default async function Home() {
                 </Link>
             </Button>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
           {featuredProducts.map((product, i) => (
              <div 
                 key={product.id}
