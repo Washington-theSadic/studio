@@ -11,7 +11,7 @@ if (!process.env.STRIPE_SECRET_KEY) {
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
-export async function createCheckoutSession(cartItems: CartItem[]) {
+export async function createCheckoutSession(cartItems: CartItem[], customerEmail: string) {
   const line_items = cartItems.map(item => {
     return {
       price_data: {
@@ -34,6 +34,7 @@ export async function createCheckoutSession(cartItems: CartItem[]) {
       payment_method_types: ['card', 'boleto'],
       line_items,
       mode: 'payment',
+      customer_email: customerEmail,
       success_url: `${origin}/?success=true`,
       cancel_url: `${origin}/cart?canceled=true`,
       billing_address_collection: 'required',
@@ -47,9 +48,9 @@ export async function createCheckoutSession(cartItems: CartItem[]) {
     } else {
       throw new Error('Failed to create Stripe Checkout session.');
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error creating Stripe session:', error);
-    // In a real app, you would want to return a more user-friendly error
-    throw new Error('Could not create checkout session.');
+    // Propagate the actual error message for better debugging.
+    throw new Error(error.message || 'Could not create checkout session.');
   }
 }

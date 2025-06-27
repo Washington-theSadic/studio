@@ -154,7 +154,7 @@ export default function CartPage() {
     setIsCheckingOut(true);
 
     try {
-        const { url } = await createCheckoutSession(cartItems);
+        const { url } = await createCheckoutSession(cartItems, currentUser.email);
         if (url) {
             window.top.location.href = url;
         } else {
