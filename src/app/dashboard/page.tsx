@@ -104,7 +104,7 @@ export default function DashboardPage() {
       const { data, error } = await getOrders();
       if (error) {
         console.error("Error fetching orders:", error);
-        toast({ title: "Erro ao buscar pedidos", description: error.message, variant: "destructive" });
+        toast({ title: "Erro ao buscar pedidos", description: error, variant: "destructive" });
       } else {
         setOrders(data || []);
       }

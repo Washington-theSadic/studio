@@ -56,26 +56,26 @@ export async function createOrder(input: CreateOrderInput): Promise<Order> {
 }
 
 
-export async function getOrders(): Promise<{ data: Order[] | null, error: any | null }> {
+export async function getOrders(): Promise<{ data: Order[] | null, error: string | null }> {
   const { data, error } = await supabase
     .from('orders')
     .select('*')
     .order('created_at', { ascending: false });
   
-  return { data, error };
+  return { data, error: error ? error.message : null };
 }
 
-export async function getOrderById(id: string): Promise<{ data: Order | null, error: any | null }> {
+export async function getOrderById(id: string): Promise<{ data: Order | null, error: string | null }> {
   const { data, error } = await supabase
     .from('orders')
     .select('*')
     .eq('id', id)
     .single();
 
-  return { data, error };
+  return { data, error: error ? error.message : null };
 }
 
-export async function updateOrderStatus(id: string, status: Order['status']): Promise<{ data: Order | null, error: any | null }> {
+export async function updateOrderStatus(id: string, status: Order['status']): Promise<{ data: Order | null, error: string | null }> {
   const { data, error } = await supabase
     .from('orders')
     .update({ status: status })
@@ -83,5 +83,5 @@ export async function updateOrderStatus(id: string, status: Order['status']): Pr
     .select()
     .single();
 
-  return { data, error };
+  return { data, error: error ? error.message : null };
 }

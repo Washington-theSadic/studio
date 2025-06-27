@@ -66,7 +66,7 @@ export default function OrderDetailPage() {
       setLoading(true);
       const { data, error } = await getOrderById(id);
       if (error || !data) {
-        toast({ title: 'Erro ao buscar pedido', description: error?.message || 'Pedido não encontrado.', variant: 'destructive' });
+        toast({ title: 'Erro ao buscar pedido', description: error || 'Pedido não encontrado.', variant: 'destructive' });
         notFound();
       } else {
         setOrder(data);
@@ -106,10 +106,10 @@ export default function OrderDetailPage() {
   const handleSaveChanges = async () => {
     if (!order) return;
     setIsSaving(true);
-    const { error } = await updateOrderStatus(order.id, currentStatus);
+    const { data, error } = await updateOrderStatus(order.id, currentStatus);
 
     if (error) {
-       toast({ title: 'Erro ao salvar', description: error.message, variant: 'destructive' });
+       toast({ title: 'Erro ao salvar', description: error, variant: 'destructive' });
     } else {
       setOrder({ ...order, status: currentStatus });
       toast({
