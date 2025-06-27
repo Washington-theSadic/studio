@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Carousel, CarouselContent, CarouselItem, type CarouselApi } from '@/components/ui/carousel';
 import { useCart } from '@/context/cart-context';
-import { ShoppingCart } from 'lucide-react';
+import { ShoppingCart, Zap } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -43,7 +43,7 @@ function ProductPageSkeleton() {
 const conditionClasses: Record<Product['condition'], string> = {
   Novo: 'border-amber-400 text-amber-400 bg-amber-400/10',
   Lacrado: 'tag-lacrado-animated text-black font-semibold',
-  Recondicionado: 'bg-black/40 text-white backdrop-blur-sm border-white/20',
+  Recondicionado: 'bg-secondary text-secondary-foreground',
 };
 
 
@@ -154,40 +154,43 @@ export default function ProductDetailPage() {
           </div>
         </div>
         
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-6">
            <div className="flex flex-wrap items-center gap-2">
             <Badge variant="secondary">{product.category}</Badge>
-            {product.condition === 'Recondicionado' ? (
+            {product.condition && (
+              product.condition === 'Recondicionado' ? (
                 <Badge variant="secondary">{product.condition}</Badge>
-              ) : product.condition ? (
+              ) : (
                 <Badge variant="outline" className={cn(conditionClasses[product.condition])}>
                   {product.condition}
                 </Badge>
-            ) : null}
+              )
+            )}
           </div>
           <h1 className="text-3xl md:text-4xl font-bold font-headline">{product.name}</h1>
           
           <div className="flex items-baseline gap-4">
             <p className="text-3xl font-bold text-foreground">{formatPrice(product.sale_price ?? product.price)}</p>
             {product.sale_price && (
-              <p className="text-2xl text-muted-foreground line-through">{formatPrice(product.price)}</p>
+              <p className="text-xl text-muted-foreground line-through">{formatPrice(product.price)}</p>
             )}
           </div>
           
           <div className="space-y-3">
-            <h2 className="text-xl font-semibold text-foreground">Descrição</h2>
-            <p className="text-muted-foreground leading-relaxed">
-                {product.long_description}
+            <h2 className="text-xl font-semibold text-foreground border-b pb-2">Descrição</h2>
+            <p className="text-muted-foreground leading-relaxed pt-2">
+                {product.long_description || 'Nenhuma descrição detalhada disponível.'}
             </p>
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-4 mt-4">
-             <Button size="lg" className="flex-1" onClick={() => addToCart(product)}>
+          <div className="flex flex-col gap-4 mt-4">
+             <Button size="lg" className="w-full" onClick={handleBuyNow}>
+                <Zap className="mr-2 h-5 w-5" />
+                Comprar Agora
+             </Button>
+             <Button size="lg" variant="outline" className="w-full" onClick={() => addToCart(product)}>
                 <ShoppingCart className="mr-2 h-5 w-5" />
                 Adicionar ao Carrinho
-             </Button>
-             <Button size="lg" variant="outline" className="flex-1" onClick={handleBuyNow}>
-                Comprar Agora
              </Button>
           </div>
         </div>
