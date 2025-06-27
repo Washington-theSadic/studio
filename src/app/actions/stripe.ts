@@ -43,6 +43,9 @@ export async function createCheckoutSession(cartItems: CartItem[], customerEmail
       shipping_address_collection: {
         allowed_countries: ['BR'],
       },
+      phone_number_collection: {
+        enabled: true,
+      },
     });
   } catch (error: any) {
     console.error('Error creating Stripe session:', error);

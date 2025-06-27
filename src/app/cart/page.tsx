@@ -137,7 +137,7 @@ export default function CartPage() {
     return price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   };
 
- const handleCheckout = async () => {
+  const handleCheckout = async () => {
     if (!currentUser) {
       router.push('/login?redirect=/cart');
       return;
@@ -153,21 +153,15 @@ export default function CartPage() {
 
     setIsCheckingOut(true);
 
-    try {
-      // The server action will now handle the redirect itself.
-      await createCheckoutSession(cartItems, currentUser.email);
-      // If the redirect is successful, the code below will not be executed.
-    } catch (error: any) {
-       console.error("Failed to create checkout session:", error);
-       toast({
-        variant: 'destructive',
-        title: 'Ocorreu um erro',
-        description: error.message || 'Não foi possível iniciar o processo de pagamento. Por favor, tente novamente.',
-       });
-       // We only set checking out to false in case of an error,
-       // because on success the user is navigated away.
-       setIsCheckingOut(false);
-    }
+    // This Server Action will redirect the user. 
+    // It should not be wrapped in a try/catch block on the client,
+    // as that would prevent the redirect from working.
+    await createCheckoutSession(cartItems, currentUser.email);
+    
+    // On a successful redirect, this line won't be reached.
+    // If an error occurs in the action before the redirect, 
+    // Next.js's default error handling will take over.
+    setIsCheckingOut(false);
   };
 
 
