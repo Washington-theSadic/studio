@@ -8,24 +8,47 @@ import { useCart } from '@/context/cart-context';
 import { useAuth } from '@/context/auth-context';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Trash2, ShoppingBag, Plus, Minus } from 'lucide-react';
+import { Trash2, ShoppingBag, Plus, Minus, Loader2 } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
+import { notifyAdminOfNewOrder } from '@/ai/flows/notify-admin-flow';
+import React from 'react';
 
 export default function CartPage() {
   const { cartItems, removeFromCart, updateQuantity, cartCount, totalPrice, clearCart } = useCart();
   const { currentUser } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
+  const [isCheckingOut, setIsCheckingOut] = React.useState(false);
 
   const formatPrice = (price: number) => {
     return price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   };
 
-  const handleCheckout = () => {
+  const handleCheckout = async () => {
     if (!currentUser) {
       router.push('/login?redirect=/cart');
-    } else {
+      return;
+    }
+
+    setIsCheckingOut(true);
+
+    try {
+      // Prepare notification payload
+      const notificationPayload = {
+        customerName: currentUser.name,
+        totalPrice: totalPrice,
+        items: cartItems.map(item => ({
+          productName: item.product.name,
+          quantity: item.quantity,
+          price: item.product.sale_price ?? item.product.price,
+        })),
+      };
+
+      // Send notification to admin (this is an async operation but we don't need to wait for it to complete to show success to the user)
+      // It will run in the background.
+      notifyAdminOfNewOrder(notificationPayload);
+
       // Mock checkout process
       toast({
         title: 'Pedido Finalizado!',
@@ -33,6 +56,16 @@ export default function CartPage() {
       });
       clearCart();
       router.push('/');
+      
+    } catch (error) {
+       console.error("Failed to send admin notification:", error);
+       toast({
+        variant: 'destructive',
+        title: 'Ocorreu um erro',
+        description: 'Não foi possível notificar o administrador. Por favor, tente novamente.',
+       });
+    } finally {
+        setIsCheckingOut(false);
     }
   };
 
@@ -122,8 +155,9 @@ export default function CartPage() {
               </div>
             </CardContent>
             <CardFooter>
-              <Button size="lg" className="w-full font-semibold" onClick={handleCheckout}>
-                {currentUser ? 'Finalizar Pedido' : 'Fazer Login para Finalizar'}
+              <Button size="lg" className="w-full font-semibold" onClick={handleCheckout} disabled={isCheckingOut}>
+                {isCheckingOut && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {currentUser ? (isCheckingOut ? 'Finalizando...' : 'Finalizar Pedido') : 'Fazer Login para Finalizar'}
               </Button>
             </CardFooter>
           </Card>
