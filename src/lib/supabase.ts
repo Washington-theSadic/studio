@@ -1,8 +1,12 @@
-import { createClient } from '@supabase/supabase-js'
+import { createBrowserClient } from '@supabase/ssr'
 
-// The Supabase URL and Key are now hardcoded for immediate functionality.
-// For production environments, it is recommended to use environment variables.
-export const supabaseUrl = 'https://sctvzllsrwghijlcioxz.supabase.co';
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNjdHZ6bGxzcndnaGlqbGNpb3h6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA5NTg2ODEsImV4cCI6MjA2NjUzNDY4MX0.pcQlAVWTZPMhAhf-4vS-DBu4bZIe7C2g0nt8CVK230I';
+export const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+if (!supabaseUrl || !supabaseAnonKey) {
+  // This error will be caught during the build process if the variables are not set.
+  throw new Error('Supabase URL and Anon Key must be provided in .env file.');
+}
+
+// It's safe to create a single instance of the client for the browser.
+export const supabase = createBrowserClient(supabaseUrl, supabaseAnonKey)
