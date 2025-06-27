@@ -1,9 +1,9 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import ProductCard from '@/components/product-card';
 import { Smartphone, Pill, Headset, ArrowRight, Tags } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import type { Product } from '@/lib/products';
+import ProductCarousel from '@/components/product-carousel';
 
 const categories = [
   { name: 'Apple', icon: Smartphone, href: '/products?category=Apple' },
@@ -18,14 +18,14 @@ export default async function Home() {
     .select('*')
     .eq('featured', true)
     .eq('status', 'ativo')
-    .limit(4);
+    .limit(8);
 
   const { data: saleProductsData } = await supabase
     .from('products')
     .select('*')
     .not('sale_price', 'is', null)
     .eq('status', 'ativo')
-    .limit(4);
+    .limit(8);
   
   const featuredProducts: Product[] = featuredProductsData ?? [];
   const saleProducts: Product[] = saleProductsData ?? [];
@@ -93,24 +93,14 @@ export default async function Home() {
         >
           <div className="flex justify-between items-center mb-12">
               <h2 className="text-3xl font-bold font-heading flex items-center gap-2"><Tags className="text-brand"/>Produtos em Promoção</h2>
-              <Button variant="link" asChild>
+              <Button variant="link" asChild className="hidden sm:flex">
                   <Link href="/products">
                       Ver todos
                       <ArrowRight className="ml-2 h-4 w-4" />
                   </Link>
               </Button>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
-            {saleProducts.map((product, i) => (
-               <div 
-                  key={product.id}
-                  className="animate-fade-in-up" 
-                  style={{ animationDelay: `${1.2 + i * 0.1}s`, animationFillMode: 'forwards', opacity: 0 }}
-               >
-                  <ProductCard product={product} />
-              </div>
-            ))}
-          </div>
+          <ProductCarousel products={saleProducts} animationDelayStart={1.2} />
         </section>
       )}
 
@@ -121,24 +111,14 @@ export default async function Home() {
       >
         <div className="flex justify-between items-center mb-12">
             <h2 className="text-3xl font-bold font-heading">Produtos em Destaque</h2>
-            <Button variant="link" asChild>
+            <Button variant="link" asChild className="hidden sm:flex">
                 <Link href="/products">
                     Ver todos
                     <ArrowRight className="ml-2 h-4 w-4" />
                 </Link>
             </Button>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
-          {featuredProducts.map((product, i) => (
-             <div 
-                key={product.id}
-                className="animate-fade-in-up" 
-                style={{ animationDelay: `${1.6 + i * 0.1}s`, animationFillMode: 'forwards', opacity: 0 }}
-             >
-                <ProductCard product={product} />
-            </div>
-          ))}
-        </div>
+        <ProductCarousel products={featuredProducts} animationDelayStart={1.6} />
       </section>
     </div>
   );
