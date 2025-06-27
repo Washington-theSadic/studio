@@ -42,19 +42,24 @@ export default function Header() {
   const isMobile = useIsMobile();
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
 
   const isAdmin = currentUser?.role === 'admin';
 
   useEffect(() => {
+    // This effect runs only on the client, after the component has mounted.
+    setIsMounted(true);
+
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 10);
     };
     
-    // Check scroll position on mount (client-side)
-    handleScroll();
-
+    handleScroll(); // Set the initial scroll state
     window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
   }, []);
 
   const handleLinkClick = () => {
@@ -102,11 +107,16 @@ export default function Header() {
        </div>
     );
   };
+  
+  // Conditionally apply scrolled class only after mounting to prevent hydration mismatch
+  const headerClass = isMounted && isScrolled
+    ? "bg-background/80 backdrop-blur-sm border-b border-border/30"
+    : "bg-transparent";
 
   return (
     <header className={cn(
       "sticky top-0 z-50 w-full transition-all duration-300",
-      isScrolled ? "bg-background/80 backdrop-blur-sm border-b border-border/30" : "bg-transparent"
+      headerClass
     )}>
       <div className="container mx-auto px-4 flex justify-between items-center h-16 md:h-20">
         <Link href="/" className="text-xl font-bold text-foreground font-heading">
