@@ -30,7 +30,7 @@ export async function createOrder(input: CreateOrderInput): Promise<{ data: Orde
           try { cookieStore.set({ name, value, ...options }); } catch (error) {}
         },
         remove(name: string, options: CookieOptions) {
-          try { cookieStore.delete({ name, ...options }); } catch (error) {}
+          try { cookieStore.set({ name, value: '', ...options }); } catch (error) {}
         },
       },
     }
@@ -95,7 +95,7 @@ export async function getOrders(): Promise<{ data: Order[] | null, error: string
           try { cookieStore.set({ name, value, ...options }); } catch (error) {}
         },
         remove(name: string, options: CookieOptions) {
-          try { cookieStore.delete({ name, ...options }); } catch (error) {}
+          try { cookieStore.set({ name, value: '', ...options }); } catch (error) {}
         },
       },
     }
@@ -122,7 +122,7 @@ export async function getOrderById(id: string): Promise<{ data: Order | null, er
           try { cookieStore.set({ name, value, ...options }); } catch (error) {}
         },
         remove(name: string, options: CookieOptions) {
-          try { cookieStore.delete({ name, ...options }); } catch (error) {}
+          try { cookieStore.set({ name, value: '', ...options }); } catch (error) {}
         },
       },
     }
@@ -150,7 +150,7 @@ export async function updateOrderStatus(id: string, status: Order['status']): Pr
           try { cookieStore.set({ name, value, ...options }); } catch (error) {}
         },
         remove(name: string, options: CookieOptions) {
-          try { cookieStore.delete({ name, ...options }); } catch (error) {}
+          try { cookieStore.set({ name, value: '', ...options }); } catch (error) {}
         },
       },
     }
@@ -179,7 +179,7 @@ export async function getOrdersByUserId(userId: string): Promise<{ data: Order[]
           try { cookieStore.set({ name, value, ...options }); } catch (error) {}
         },
         remove(name: string, options: CookieOptions) {
-          try { cookieStore.delete({ name, ...options }); } catch (error) {}
+          try { cookieStore.set({ name, value: '', ...options }); } catch (error) {}
         },
       },
     }
