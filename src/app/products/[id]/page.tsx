@@ -8,23 +8,22 @@ import { supabase } from '@/lib/supabase';
 import type { Product } from '@/lib/products';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
+import { Carousel, CarouselContent, CarouselItem, type CarouselApi } from '@/components/ui/carousel';
 import { useCart } from '@/context/cart-context';
 import { ShoppingCart } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { useIsMobile } from '@/hooks/use-mobile';
 
 function ProductPageSkeleton() {
   return (
     <div className="grid md:grid-cols-2 gap-12 items-start">
       <div>
         <Skeleton className="aspect-square w-full rounded-lg" />
-        <div className="flex gap-2 mt-4">
-          <Skeleton className="w-20 h-20 rounded-lg" />
-          <Skeleton className="w-20 h-20 rounded-lg" />
-          <Skeleton className="w-20 h-20 rounded-lg" />
+        <div className="flex justify-center gap-2 mt-4">
+          <Skeleton className="h-1 w-8 rounded-full" />
+          <Skeleton className="h-1 w-8 rounded-full" />
+          <Skeleton className="h-1 w-8 rounded-full" />
         </div>
       </div>
       <div className="flex flex-col gap-6">
@@ -55,7 +54,10 @@ export default function ProductDetailPage() {
   const { addToCart } = useCart();
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
-  const isMobile = useIsMobile();
+  
+  const [api, setApi] = useState<CarouselApi>()
+  const [current, setCurrent] = useState(0)
+  const [count, setCount] = useState(0)
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -77,6 +79,19 @@ export default function ProductDetailPage() {
 
     fetchProduct();
   }, [id]);
+  
+  useEffect(() => {
+    if (!api) {
+      return
+    }
+ 
+    setCount(api.scrollSnapList().length)
+    setCurrent(api.selectedScrollSnap() + 1)
+ 
+    api.on("select", () => {
+      setCurrent(api.selectedScrollSnap() + 1)
+    })
+  }, [api])
 
   if (loading) {
     return (
@@ -104,7 +119,7 @@ export default function ProductDetailPage() {
     <div className="container mx-auto px-4 py-8 animate-fade-in-up">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 items-start">
         <div className="relative">
-          <Carousel className="w-full" opts={{ loop: true }}>
+          <Carousel setApi={setApi} className="w-full" opts={{ loop: true }}>
             <CarouselContent>
               {product.images.map((img, index) => (
                 <CarouselItem key={index}>
@@ -123,27 +138,32 @@ export default function ProductDetailPage() {
                 </CarouselItem>
               ))}
             </CarouselContent>
-             {!isMobile && (
-              <>
-                <CarouselPrevious />
-                <CarouselNext />
-              </>
-            )}
           </Carousel>
+          <div className="flex justify-center gap-2 mt-4">
+            {Array.from({ length: count }).map((_, index) => (
+              <button
+                key={index}
+                onClick={() => api?.scrollTo(index)}
+                className={cn(
+                  'h-1 w-8 rounded-full transition-colors',
+                  current === index + 1 ? 'bg-primary' : 'bg-muted'
+                )}
+                aria-label={`Ir para imagem ${index + 1}`}
+              />
+            ))}
+          </div>
         </div>
         
         <div className="flex flex-col gap-4">
            <div className="flex flex-wrap items-center gap-2">
             <Badge variant="secondary">{product.category}</Badge>
-            {product.condition && (
-              product.condition === 'Recondicionado' ? (
+            {product.condition === 'Recondicionado' ? (
                 <Badge variant="secondary">{product.condition}</Badge>
-              ) : (
+              ) : product.condition ? (
                 <Badge variant="outline" className={cn(conditionClasses[product.condition])}>
                   {product.condition}
                 </Badge>
-              )
-            )}
+            ) : null}
           </div>
           <h1 className="text-3xl md:text-4xl font-bold font-headline">{product.name}</h1>
           
