@@ -8,7 +8,7 @@ import { useCart } from '@/context/cart-context';
 import { useAuth } from '@/context/auth-context';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Trash2, ShoppingBag, Plus, Minus, Loader2, MapPin, PlusCircle } from 'lucide-react';
+import { Trash2, ShoppingBag, Plus, Minus, Loader2, MapPin, PlusCircle, Wallet, QrCode, CreditCard } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
 import React, { useState, useEffect } from 'react';
@@ -99,12 +99,13 @@ const AddressForm = ({ onAddressAdded, userId }: { onAddressAdded: () => void, u
 
 
 export default function CartPage() {
-  const { cartItems, removeFromCart, updateQuantity, cartCount, totalPrice } = useCart();
+  const { cartItems, removeFromCart, updateQuantity, cartCount, totalPrice, clearCart } = useCart();
   const { currentUser, loading: authLoading } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
   
   const [isCheckingOut, setIsCheckingOut] = useState(false);
+  const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
   
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [selectedAddress, setSelectedAddress] = useState<string | undefined>(undefined);
@@ -142,7 +143,7 @@ export default function CartPage() {
     return price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   };
 
-  const handleCheckout = async () => {
+  const handleStripeCheckout = async () => {
     if (!currentUser) {
       router.push('/login?redirect=/cart');
       return;
@@ -157,7 +158,6 @@ export default function CartPage() {
 
     try {
       const checkoutUrl = await createCheckoutSession(cartItems, currentUser.email);
-      // Use window.top.location.href to escape the iframe
       if (checkoutUrl && window.top) {
         window.top.location.href = checkoutUrl;
       } else {
@@ -169,8 +169,50 @@ export default function CartPage() {
         description: error.message || "Ocorreu um erro inesperado. Tente novamente.",
         variant: "destructive"
       });
-      setIsCheckingOut(false);
+    } finally {
+        setIsCheckingOut(false);
     }
+  };
+
+  const handleWhatsAppCheckout = (paymentMethod: 'Dinheiro' | 'Pix') => {
+    if (!currentUser || !selectedAddress) {
+      toast({ title: "Informações incompletas", description: "Faça login e selecione um endereço para continuar.", variant: "destructive" });
+      return;
+    }
+
+    const address = addresses.find(addr => addr.id === selectedAddress);
+    if (!address) {
+        toast({ title: "Endereço não encontrado", description: "O endereço selecionado não foi encontrado.", variant: "destructive" });
+        return;
+    }
+    
+    setIsCheckingOut(true);
+
+    const itemsList = cartItems
+      .map(item => `- ${item.quantity}x ${item.product.name}`)
+      .join('\n');
+
+    const message = `Olá! Gostaria de finalizar meu pedido.\n\n*Cliente:* ${currentUser.name}\n\n*Itens:*\n${itemsList}\n\n*Valor Total:* ${formatPrice(totalPrice)}\n\n*Endereço de Entrega:*\n${address.street}\n${address.city}, ${address.state} - ${address.zip}\n\n*Forma de Pagamento:* ${paymentMethod}`.trim();
+
+    const encodedMessage = encodeURIComponent(message);
+    const phoneNumber = '5577998188469';
+    const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodedMessage}`;
+
+    toast({
+      title: "Redirecionando para o WhatsApp...",
+      description: "Seu pedido está sendo preparado. Finalize a conversa no WhatsApp.",
+    });
+    
+    setTimeout(() => {
+      clearCart();
+    }, 500);
+
+    if (window.top) {
+        window.top.location.href = whatsappUrl;
+    }
+
+    setIsPaymentDialogOpen(false);
+    setIsCheckingOut(false);
   };
 
 
@@ -307,16 +349,55 @@ export default function CartPage() {
               <Button 
                 size="lg" 
                 className="w-full font-semibold" 
-                onClick={handleCheckout} 
+                onClick={() => setIsPaymentDialogOpen(true)} 
                 disabled={isCheckingOut || authLoading || (!!currentUser && (!selectedAddress || addresses.length === 0))}
               >
                 {isCheckingOut && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {currentUser ? (isCheckingOut ? 'Finalizando...' : 'Finalizar Pedido') : 'Fazer Login para Finalizar'}
+                {currentUser ? (isCheckingOut ? 'Aguarde...' : 'Continuar para Pagamento') : 'Fazer Login para Finalizar'}
               </Button>
             </CardFooter>
           </Card>
         </div>
       </div>
+
+       <Dialog open={isPaymentDialogOpen} onOpenChange={setIsPaymentDialogOpen}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Escolha a Forma de Pagamento</DialogTitle>
+                    <DialogDescription>
+                        Selecione como você prefere pagar pelo seu pedido.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="grid grid-cols-1 gap-4 py-4">
+                    <Button variant="outline" size="lg" className="justify-start h-14" onClick={() => handleWhatsAppCheckout('Dinheiro')} disabled={isCheckingOut}>
+                        <Wallet className="mr-4 h-6 w-6" />
+                        <div className="text-left">
+                            <p className="font-semibold">Dinheiro</p>
+                            <p className="text-xs text-muted-foreground">Pagar na entrega via WhatsApp</p>
+                        </div>
+                    </Button>
+                    <Button variant="outline" size="lg" className="justify-start h-14" onClick={() => handleWhatsAppCheckout('Pix')} disabled={isCheckingOut}>
+                        <QrCode className="mr-4 h-6 w-6" />
+                        <div className="text-left">
+                            <p className="font-semibold">Pix</p>
+                            <p className="text-xs text-muted-foreground">Pagar com chave Pix via WhatsApp</p>
+                        </div>
+                    </Button>
+                    <Button variant="outline" size="lg" className="justify-start h-14" onClick={handleStripeCheckout} disabled={isCheckingOut}>
+                        <CreditCard className="mr-4 h-6 w-6" />
+                        <div className="text-left">
+                            <p className="font-semibold">Cartão ou Boleto</p>
+                            <p className="text-xs text-muted-foreground">Pagamento seguro via Stripe</p>
+                        </div>
+                    </Button>
+                </div>
+                <DialogFooter>
+                    <DialogClose asChild>
+                        <Button type="button" variant="ghost" disabled={isCheckingOut}>Cancelar</Button>
+                    </DialogClose>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
     </div>
   );
 }
