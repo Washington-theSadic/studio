@@ -1,4 +1,3 @@
-
 "use client"
 
 import * as React from "react"
@@ -74,7 +73,13 @@ const timeSince = (dateString: string) => {
 
 
 export default function DashboardPage() {
-  const recentOrders = [...orders].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 5);
+  const recentOrders = React.useMemo(() => 
+    [...orders]
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      .slice(0, 5),
+    []
+  );
+  
   const totalRevenue = orders.reduce((sum, order) => sum + order.total, 0);
   const totalSales = orders.length;
 
@@ -222,5 +227,4 @@ export default function DashboardPage() {
     </div>
   )
 }
-
     
