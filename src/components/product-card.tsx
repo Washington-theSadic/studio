@@ -36,9 +36,6 @@ export default function ProductCard({ product }: ProductCardProps) {
             {product.condition && product.condition !== 'Novo' && (
               <Badge className="border-amber-500 text-amber-500 bg-amber-500/10" variant="outline">{product.condition}</Badge>
             )}
-            {hasSale && (
-                <Badge variant="destructive">Promoção</Badge>
-            )}
         </div>
         <Link href={`/products/${product.id}`} className="block overflow-hidden">
           <div className="aspect-square relative w-full">
@@ -75,14 +72,14 @@ export default function ProductCard({ product }: ProductCardProps) {
       </CardContent>
 
       <CardFooter className="p-4 pt-0 mt-auto">
-        <div className="flex flex-col sm:flex-row gap-2 w-full">
-            <Button className="flex-1" onClick={() => addToCart(product)}>
-                <ShoppingCart className="mr-2 h-4 w-4" />
-                Adicionar
-            </Button>
-            <Button variant="outline" className="flex-1" onClick={handleBuyNow}>
+        <div className="flex flex-col gap-2 w-full">
+            <Button variant="outline" className="w-full" onClick={handleBuyNow}>
                  <Zap className="mr-2 h-4 w-4" />
-                Comprar
+                Comprar Agora
+            </Button>
+            <Button className="w-full" onClick={() => addToCart(product)}>
+                <ShoppingCart className="mr-2 h-4 w-4" />
+                Adicionar ao Carrinho
             </Button>
         </div>
       </CardFooter>
