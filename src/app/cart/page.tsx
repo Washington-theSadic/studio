@@ -63,6 +63,7 @@ export default function CartPage() {
                     src={product.images[0]}
                     alt={product.name}
                     fill
+                    sizes="(max-width: 768px) 25vw, 10vw"
                     className="object-cover"
                     data-ai-hint={`${product.category.toLowerCase()} product`}
                   />
