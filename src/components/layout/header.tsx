@@ -47,14 +47,13 @@ export default function Header() {
   const isAdmin = currentUser?.role === 'admin';
 
   useEffect(() => {
-    // This effect runs only on the client, after the component has mounted.
     setIsMounted(true);
 
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 10);
     };
     
-    handleScroll(); // Set the initial scroll state
+    handleScroll();
     window.addEventListener('scroll', handleScroll);
 
     return () => {
@@ -108,10 +107,29 @@ export default function Header() {
     );
   };
   
-  // Conditionally apply scrolled class only after mounting to prevent hydration mismatch
-  const headerClass = isMounted && isScrolled
-    ? "bg-background/80 backdrop-blur-sm border-b border-border/30"
-    : "bg-transparent";
+  const headerClass = isScrolled ? "bg-background/80 backdrop-blur-sm border-b border-border/30" : "bg-transparent";
+
+  if (!isMounted) {
+    return (
+      <header className="sticky top-0 z-50 w-full transition-all duration-300 bg-transparent">
+        <div className="container mx-auto px-4 flex justify-between items-center h-16 md:h-20">
+          <Link href="/" className="text-xl font-bold text-foreground font-heading">
+            JC MARKETPLACE
+          </Link>
+          <div className="hidden md:flex items-center gap-8">
+            <NavLinks isAdmin={false} />
+            <div className="flex items-center gap-4">
+              <Skeleton className="h-9 w-36" />
+              <Skeleton className="h-9 w-28" />
+            </div>
+          </div>
+          <div className="md:hidden">
+            <Skeleton className="h-8 w-8 rounded-full" />
+          </div>
+        </div>
+      </header>
+    );
+  }
 
   return (
     <header className={cn(
