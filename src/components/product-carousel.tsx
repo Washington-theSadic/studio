@@ -11,8 +11,7 @@ type ProductCarouselProps = {
 };
 
 export default function ProductCarousel({ products, animationDelayStart = 0 }: ProductCarouselProps) {
-  // No more useState or useEffect for mobile detection.
-  // We now render both versions and use CSS to show/hide them.
+  // Use CSS for responsiveness instead of JS hooks to avoid SSR errors.
   
   return (
     <>

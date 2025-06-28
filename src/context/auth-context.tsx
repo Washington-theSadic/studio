@@ -107,10 +107,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return { error: new Error("Nenhum arquivo válido foi selecionado.") };
     }
 
-    const fileExtension = file.name.split('.').pop();
-    const fileName = `${crypto.randomUUID()}.${fileExtension}`;
-    
-    // Alinhado com a funcionalidade de upload de produto, salvando na raiz.
+    // Mirror the working product upload logic exactly to comply with RLS policies.
+    const fileName = `${crypto.randomUUID()}-${file.name}`;
     const filePath = fileName;
 
     const { data: uploadData, error: uploadError } = await supabase.storage
@@ -118,7 +116,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       .upload(filePath, file);
 
     if (uploadError) {
-      // Log do erro completo para depuração
+      // Log the full error object for better debugging
       console.error('Supabase Storage upload error:', JSON.stringify(uploadError, null, 2));
       const message =
         (uploadError as any).message ||
@@ -148,7 +146,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return { error: new Error(updateError.message || 'Falha ao atualizar o perfil do usuário.') };
     }
     
-    // Atualiza o estado local com a URL que sabemos ser correta.
+    // Optimistically update the user state with the new URL
     setCurrentUser((prevUser) =>
       prevUser ? { ...prevUser, avatar_url: publicUrl } : null
     );
