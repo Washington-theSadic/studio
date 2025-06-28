@@ -136,7 +136,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (updatedUserData.user) {
              setCurrentUser(prevUser => prevUser ? {
                 ...prevUser,
-                avatar_url: updatedUserData.user?.user_metadata.avatar_url,
+                avatar_url: publicUrl, // Use the reliable URL from storage
             } : null);
         }
 
