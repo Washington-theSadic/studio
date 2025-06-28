@@ -69,7 +69,7 @@ export default function Header() {
     setIsSheetOpen(false);
   }
 
-  const AuthNav = () => {
+  const AuthNav = ({ onLinkClick }: { onLinkClick?: () => void }) => {
     if (loading) return <Skeleton className="h-9 w-24" />;
 
     if (currentUser) {
@@ -85,12 +85,15 @@ export default function Header() {
             <DropdownMenuLabel>Olá, {currentUser.name}!</DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
-              <Link href="/account">
+              <Link href="/account" onClick={onLinkClick}>
                 <User className="mr-2 h-4 w-4" />
                 <span>Minha Conta</span>
               </Link>
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={logout}>
+            <DropdownMenuItem onClick={() => {
+              logout();
+              if (onLinkClick) onLinkClick();
+            }}>
               <LogOut className="mr-2 h-4 w-4" />
               <span>Sair</span>
             </DropdownMenuItem>
@@ -102,10 +105,10 @@ export default function Header() {
     return (
        <div className="flex items-center gap-2">
          <Button asChild variant="ghost" size="sm">
-            <Link href="/login">Login</Link>
+            <Link href="/login" onClick={onLinkClick}>Login</Link>
          </Button>
          <Button asChild size="sm">
-            <Link href="/register">Cadastre-se</Link>
+            <Link href="/register" onClick={onLinkClick}>Cadastre-se</Link>
          </Button>
        </div>
     );
@@ -170,7 +173,7 @@ export default function Header() {
                 <div className="flex flex-col gap-6 pt-6">
                   <NavLinks className="flex-col text-lg items-start" onLinkClick={handleLinkClick} isAdmin={isAdmin} />
                   <div className="border-t pt-6">
-                    <AuthNav />
+                    <AuthNav onLinkClick={handleLinkClick} />
                   </div>
                 </div>
               </SheetContent>
