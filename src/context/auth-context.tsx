@@ -105,8 +105,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     try {
         const fileExt = file.name.split('.').pop();
-        const fileName = `${currentUser.id}-${Date.now()}.${fileExt}`;
-        const filePath = `avatars/${fileName}`;
+        const fileName = `${Date.now()}.${fileExt}`;
+        const filePath = `avatars/${currentUser.id}/${fileName}`;
 
         // Step 1: Upload the file
         const { error: uploadError } = await supabase.storage
