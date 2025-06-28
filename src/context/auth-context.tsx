@@ -111,11 +111,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // O erro 403 "violates row-level security policy" indica que o Supabase está
     // bloqueando o upload porque ele não cumpre as regras de segurança.
     // Uma política comum e segura é permitir que os usuários façam upload apenas
-    // para uma pasta com o nome de seu próprio ID de usuário.
-    // A correção é garantir que o caminho do arquivo siga esse padrão.
+    // para uma pasta com o nome de seu próprio ID de usuário, dentro de uma pasta 'avatars'.
     const fileExtension = file.name.split('.').pop();
     const fileName = `${crypto.randomUUID()}.${fileExtension}`;
-    const filePath = `${currentUser.id}/${fileName}`; // Caminho: 'USER_ID/unique_file_name.jpg'
+    const filePath = `avatars/${currentUser.id}/${fileName}`; // Caminho: 'avatars/USER_ID/unique_file_name.jpg'
 
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from('public-images')
@@ -126,7 +125,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       console.error('Supabase Storage upload error:', JSON.stringify(uploadError, null, 2));
       const message =
         (uploadError as any).message ||
-        'Falha no upload da imagem. Verifique se as permissões de armazenamento (RLS) estão configuradas corretamente para permitir uploads na pasta do usuário.';
+        'Falha no upload da imagem. Verifique se as permissões de armazenamento (RLS) estão configuradas corretamente para permitir uploads na pasta de avatares do usuário.';
       return { error: new Error(message) };
     }
 
