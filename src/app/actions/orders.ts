@@ -35,8 +35,13 @@ const createSupabaseServerClient = () => {
 export async function createOrder(input: CreateOrderInput): Promise<Order> {
   const supabase = createSupabaseServerClient();
   
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    throw new Error('User is not authenticated.');
+  }
+  
   const orderPayload = {
-    user_id: input.userId,
+    user_id: user.id, // Use the server-side authenticated user ID
     customer_name: input.customerName,
     customer_email: input.customerEmail,
     total_price: input.totalPrice,
