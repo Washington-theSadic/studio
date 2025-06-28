@@ -20,7 +20,7 @@ type AuthContextType = {
   register: (name: string, email: string, pass: string) => Promise<{ error: AuthError | null }>;
   logout: () => Promise<void>;
   loading: boolean;
-  updateAvatar: (file: File) => Promise<{ error: any | null }>;
+  updateAvatar: (file: File) => Promise<{ error: Error | null }>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -98,54 +98,57 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     router.push('/login');
   };
 
-  const updateAvatar = async (file: File) => {
+  const updateAvatar = async (file: File): Promise<{ error: Error | null }> => {
     if (!currentUser) {
         return { error: new Error("Usuário não autenticado.") };
     }
 
-    try {
-        const fileExt = file.name.split('.').pop();
-        const fileName = `${Date.now()}.${fileExt}`;
-        const filePath = `avatars/${currentUser.id}/${fileName}`;
+    // Step 1: Upload the file
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${Date.now()}.${fileExt}`;
+    const filePath = `avatars/${currentUser.id}/${fileName}`;
 
-        // Step 1: Upload the file
-        const { data: uploadData, error: uploadError } = await supabase.storage
-            .from('public-images')
-            .upload(filePath, file, { upsert: true });
+    const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('public-images')
+        .upload(filePath, file, { upsert: true });
 
-        if (uploadError) throw uploadError;
-        if (!uploadData) throw new Error("Falha no upload da imagem, nenhum dado retornado.");
-
-        // Step 2: Get the public URL using the returned path
-        const { data: { publicUrl } } = supabase.storage
-            .from('public-images')
-            .getPublicUrl(uploadData.path);
-        
-        if (!publicUrl) {
-            throw new Error("Não foi possível obter a URL pública da imagem.");
-        }
-
-        // Step 3: Update the user metadata
-        const { data: updatedUserData, error: updateError } = await supabase.auth.updateUser({
-            data: { avatar_url: publicUrl }
-        });
-
-        if (updateError) throw updateError;
-
-        // Step 4: Update the local user state
-        if (updatedUserData.user) {
-             setCurrentUser(prevUser => prevUser ? {
-                ...prevUser,
-                avatar_url: publicUrl,
-            } : null);
-        }
-
-        return { error: null };
-    } catch (error: any) {
-        console.error("Avatar update error:", error);
-        const errorMessage = error.message || error.error_description || 'Ocorreu um erro desconhecido ao tentar atualizar a foto.';
-        return { error: new Error(errorMessage) };
+    if (uploadError) {
+        console.error('Supabase Storage upload error:', uploadError);
+        return { error: new Error(uploadError.message || 'Falha no upload da imagem.') };
     }
+    if (!uploadData?.path) {
+        console.error('Upload succeeded but no path returned.');
+        return { error: new Error("Falha no upload da imagem, nenhum caminho retornado.") };
+    }
+
+    // Step 2: Get the public URL
+    const { data: urlData } = supabase.storage
+        .from('public-images')
+        .getPublicUrl(uploadData.path);
+    
+    const publicUrl = urlData?.publicUrl;
+    if (!publicUrl) {
+        console.error('Could not get public URL for path:', uploadData.path);
+        return { error: new Error("Não foi possível obter a URL pública da imagem.") };
+    }
+
+    // Step 3: Update the user metadata
+    const { data: updatedUserData, error: updateError } = await supabase.auth.updateUser({
+        data: { avatar_url: publicUrl }
+    });
+
+    if (updateError) {
+        console.error('Supabase auth update user error:', updateError);
+        return { error: new Error(updateError.message || 'Falha ao atualizar o perfil do usuário.') };
+    }
+
+    // Step 4: Update the local user state
+    setCurrentUser(prevUser => prevUser ? {
+        ...prevUser,
+        avatar_url: publicUrl,
+    } : null);
+
+    return { error: null };
   };
 
 

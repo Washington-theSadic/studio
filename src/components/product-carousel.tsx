@@ -1,8 +1,8 @@
 
 "use client";
 
+import { useState, useEffect } from 'react';
 import type { Product } from '@/lib/products';
-import { useIsMobile } from '@/hooks/use-mobile';
 import { Carousel, CarouselContent, CarouselItem } from '@/components/ui/carousel';
 import ProductCard from './product-card';
 
@@ -12,7 +12,20 @@ type ProductCarouselProps = {
 };
 
 export default function ProductCarousel({ products, animationDelayStart = 0 }: ProductCarouselProps) {
-  const isMobile = useIsMobile();
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkDevice = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+
+    checkDevice();
+    window.addEventListener('resize', checkDevice);
+
+    return () => {
+      window.removeEventListener('resize', checkDevice);
+    };
+  }, []);
 
   if (isMobile) {
     return (
