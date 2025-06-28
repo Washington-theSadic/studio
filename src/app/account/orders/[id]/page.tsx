@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -214,12 +213,14 @@ export default function UserOrderDetailPage() {
                     <p className="text-sm text-muted-foreground">{statusText}</p>
                 </div>
             </CardContent>
-            <CardFooter>
-                <Button className="w-full" onClick={handleTrackOrder}>
-                    <Navigation className="mr-2 h-4 w-4" />
-                    Rastrear seu pedido
-                </Button>
-            </CardFooter>
+            {order.status === 'Enviado' && (
+              <CardFooter>
+                  <Button className="w-full" onClick={handleTrackOrder}>
+                      <Navigation className="mr-2 h-4 w-4" />
+                      Rastrear seu pedido
+                  </Button>
+              </CardFooter>
+            )}
           </Card>
           
           <Card>
