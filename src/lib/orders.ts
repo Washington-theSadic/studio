@@ -16,7 +16,7 @@ export type Order = {
   items: OrderItem[]; // jsonb
   shipping_address: string;
   payment_method: string;
-  status: 'Pendente' | 'Processando' | 'Enviado' | 'Entregue' | 'Cancelado';
+  status: 'Pendente' | 'Processando' | 'Enviado' | 'Em rota de entrega' | 'Entregue' | 'Cancelado';
 };
 
 // Data is now fetched from Supabase, this is kept for type reference.

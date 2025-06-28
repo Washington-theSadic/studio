@@ -32,6 +32,7 @@ const statusColors: Record<Status, string> = {
   Pendente: 'bg-yellow-500 text-black hover:bg-yellow-600',
   Processando: 'bg-blue-500 text-white hover:bg-blue-600',
   Enviado: 'bg-indigo-500 text-white hover:bg-indigo-600',
+  'Em rota de entrega': 'bg-purple-500 text-white hover:bg-purple-600',
   Entregue: 'bg-green-500 text-white hover:bg-green-600',
   Cancelado: 'bg-destructive text-destructive-foreground hover:bg-destructive/90',
 };
@@ -136,11 +137,14 @@ export default function OrderDetailPage() {
     if (error) {
        toast({ title: 'Erro ao salvar', description: error, variant: 'destructive' });
     } else {
-      setOrder({ ...order, status: currentStatus });
-      toast({
-        title: 'Status do Pedido Atualizado!',
-        description: `O status do pedido #${order.id.substring(0, 8)}... foi alterado para "${currentStatus}".`,
-      });
+      if (data) {
+        setOrder({ ...order, status: data.status });
+        setCurrentStatus(data.status);
+        toast({
+          title: 'Status do Pedido Atualizado!',
+          description: `O status do pedido #${order.id.substring(0, 8)}... foi alterado para "${data.status}".`,
+        });
+      }
     }
     setIsSaving(false);
   };
@@ -211,6 +215,7 @@ export default function OrderDetailPage() {
                         <SelectItem value="Pendente">Pendente</SelectItem>
                         <SelectItem value="Processando">Processando</SelectItem>
                         <SelectItem value="Enviado">Enviado</SelectItem>
+                        <SelectItem value="Em rota de entrega">Em rota de entrega</SelectItem>
                         <SelectItem value="Entregue">Entregue</SelectItem>
                         <SelectItem value="Cancelado">Cancelado</SelectItem>
                       </SelectContent>

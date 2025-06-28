@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -20,6 +21,7 @@ const statusInfo: Record<Status, { icon: React.ElementType, text: string, color:
   Pendente: { icon: Loader2, text: 'Seu pedido foi recebido e está pendente de processamento.', color: 'bg-yellow-500 text-black' },
   Processando: { icon: Package, text: 'Estamos preparando seu pedido para o envio.', color: 'bg-blue-500 text-white' },
   Enviado: { icon: Truck, text: 'Seu pedido foi enviado e está a caminho.', color: 'bg-indigo-500 text-white' },
+  'Em rota de entrega': { icon: Navigation, text: 'Seu pedido saiu para entrega.', color: 'bg-purple-500 text-white' },
   Entregue: { icon: CheckCircle, text: 'Seu pedido foi entregue com sucesso!', color: 'bg-green-500 text-white' },
   Cancelado: { icon: XCircle, text: 'Seu pedido foi cancelado.', color: 'bg-destructive text-destructive-foreground' },
 };
@@ -213,7 +215,7 @@ export default function UserOrderDetailPage() {
                     <p className="text-sm text-muted-foreground">{statusText}</p>
                 </div>
             </CardContent>
-            {order.status === 'Enviado' && (
+            {(order.status === 'Enviado' || order.status === 'Em rota de entrega') && (
               <CardFooter>
                   <Button className="w-full" onClick={handleTrackOrder}>
                       <Navigation className="mr-2 h-4 w-4" />

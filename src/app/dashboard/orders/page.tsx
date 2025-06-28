@@ -48,6 +48,7 @@ const statusColors: Record<Status, string> = {
   Pendente: "bg-yellow-500 text-black hover:bg-yellow-600",
   Processando: "bg-blue-500 text-white hover:bg-blue-600",
   Enviado: "bg-indigo-500 text-white hover:bg-indigo-600",
+  'Em rota de entrega': 'bg-purple-500 text-white hover:bg-purple-600',
   Entregue: "bg-green-500 text-white hover:bg-green-600",
   Cancelado: "bg-destructive text-destructive-foreground hover:bg-destructive/90",
 };
@@ -125,7 +126,7 @@ export default function DashboardOrdersPage() {
     });
   }
 
-  const statusTabs: (Status | "Todos")[] = ["Todos", "Pendente", "Processando", "Enviado", "Entregue", "Cancelado"];
+  const statusTabs: (Status | "Todos")[] = ["Todos", "Pendente", "Processando", "Enviado", "Em rota de entrega", "Entregue", "Cancelado"];
 
   return (
     <Card>
