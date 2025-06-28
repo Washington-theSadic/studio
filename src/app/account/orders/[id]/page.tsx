@@ -142,7 +142,7 @@ export default function UserOrderDetailPage() {
           <ArrowLeft className="h-4 w-4" />
           <span className="sr-only">Voltar para Meus Pedidos</span>
         </Button>
-        <h1 className="flex-1 shrink-0 whitespace-nowrap text-xl font-semibold tracking-tight sm:grow-0">
+        <h1 className="flex-1 text-xl font-semibold tracking-tight truncate min-w-0">
           Detalhes do Pedido #{order.id.substring(0, 8)}...
         </h1>
       </div>
@@ -153,29 +153,45 @@ export default function UserOrderDetailPage() {
                 <CardHeader>
                     <CardTitle>Resumo do Pedido</CardTitle>
                 </CardHeader>
-                <CardContent>
-                    <Table>
-                        <TableHeader>
-                        <TableRow>
-                            <TableHead>Produto</TableHead>
-                            <TableHead className="text-center">Quantidade</TableHead>
-                            <TableHead className="text-right">Preço Unitário</TableHead>
-                            <TableHead className="text-right">Total</TableHead>
-                        </TableRow>
-                        </TableHeader>
-                        <TableBody>
+                <CardContent className="p-0">
+                    {/* Mobile View */}
+                    <div className="divide-y divide-border md:hidden">
                         {order.items.map((item) => (
-                            <TableRow key={item.productId}>
-                            <TableCell>{item.productName}</TableCell>
-                            <TableCell className="text-center">{item.quantity}</TableCell>
-                            <TableCell className="text-right">{formatPrice(item.price)}</TableCell>
-                            <TableCell className="text-right">{formatPrice(item.price * item.quantity)}</TableCell>
-                            </TableRow>
+                            <div key={item.productId} className="px-6 py-4 flex justify-between items-center">
+                                <div>
+                                    <p className="font-medium">{item.productName}</p>
+                                    <p className="text-sm text-muted-foreground">{item.quantity} x {formatPrice(item.price)}</p>
+                                </div>
+                                <p className="font-medium text-right">{formatPrice(item.price * item.quantity)}</p>
+                            </div>
                         ))}
-                        </TableBody>
-                    </Table>
+                    </div>
+
+                    {/* Desktop View */}
+                    <div className="hidden md:block">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead className="pl-6">Produto</TableHead>
+                                    <TableHead className="text-center">Quantidade</TableHead>
+                                    <TableHead className="text-right">Preço Unitário</TableHead>
+                                    <TableHead className="text-right pr-6">Total</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                            {order.items.map((item) => (
+                                <TableRow key={item.productId}>
+                                <TableCell className="pl-6">{item.productName}</TableCell>
+                                <TableCell className="text-center">{item.quantity}</TableCell>
+                                <TableCell className="text-right">{formatPrice(item.price)}</TableCell>
+                                <TableCell className="text-right pr-6">{formatPrice(item.price * item.quantity)}</TableCell>
+                                </TableRow>
+                            ))}
+                            </TableBody>
+                        </Table>
+                    </div>
                 </CardContent>
-                <CardFooter className="flex justify-end font-bold text-lg border-t pt-6 bg-muted/30">
+                <CardFooter className="flex justify-end font-bold text-lg border-t pt-6 bg-muted/30 px-6">
                     <div className="flex items-center gap-4">
                         <span>Total:</span>
                         <span>{formatPrice(order.total_price)}</span>
