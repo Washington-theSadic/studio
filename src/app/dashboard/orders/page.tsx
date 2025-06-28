@@ -167,11 +167,13 @@ export default function DashboardOrdersPage() {
       </CardHeader>
       <CardContent>
         <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as Status | "Todos")}>
-          <TabsList className="mb-4">
-            {statusTabs.map(tab => (
-              <TabsTrigger key={tab} value={tab}>{tab}</TabsTrigger>
-            ))}
-          </TabsList>
+           <div className="relative w-full overflow-x-auto">
+            <TabsList className="mb-4 w-max">
+              {statusTabs.map(tab => (
+                <TabsTrigger key={tab} value={tab}>{tab}</TabsTrigger>
+              ))}
+            </TabsList>
+           </div>
         </Tabs>
         {loading ? (
           <div className="flex justify-center items-center h-64">
