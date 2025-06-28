@@ -102,13 +102,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (!currentUser) {
       return { error: new Error('Usuário não autenticado.') };
     }
+    
+    if (!file || !file.name) {
+        return { error: new Error("Nenhum arquivo válido foi selecionado.") };
+    }
 
-    const fileExt = file.name.split('.').pop();
-    // A unique file name to avoid collisions in the bucket root.
-    // This mirrors the working logic for product image uploads.
-    const fileName = `avatar_${currentUser.id}_${Date.now()}.${fileExt}`;
-
-    // Upload to the root of the bucket to avoid potential RLS issues on subfolders.
+    // Mirroring working product upload logic for robustness
+    const fileName = `${crypto.randomUUID()}-${file.name}`;
+    
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from('public-images')
       .upload(fileName, file);
