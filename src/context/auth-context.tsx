@@ -20,7 +20,6 @@ type AuthContextType = {
   register: (name: string, email: string, pass: string) => Promise<{ error: AuthError | null }>;
   logout: () => Promise<void>;
   loading: boolean;
-  updateAvatar: (file: File) => Promise<{ error: Error | null }>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -98,70 +97,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     router.push('/login');
   };
 
-  const updateAvatar = async (file: File): Promise<{ error: Error | null }> => {
-    if (!currentUser) {
-      return { error: new Error('Usuário não autenticado.') };
-    }
-    
-    if (!file || !file.name) {
-        return { error: new Error("Nenhum arquivo válido foi selecionado.") };
-    }
-
-    // Mirror the working product upload logic exactly to comply with RLS policies.
-    const fileName = `${crypto.randomUUID()}-${file.name}`;
-    const filePath = fileName;
-
-    const { data: uploadData, error: uploadError } = await supabase.storage
-      .from('public-images')
-      .upload(filePath, file);
-
-    if (uploadError) {
-      // Log the full error object for better debugging
-      console.error('Supabase Storage upload error:', JSON.stringify(uploadError, null, 2));
-      const message =
-        (uploadError as any).message ||
-        'Falha no upload da imagem. Verifique se as permissões de armazenamento (RLS) estão configuradas corretamente.';
-      return { error: new Error(message) };
-    }
-
-    if (!uploadData?.path) {
-        return { error: new Error('O upload foi bem-sucedido, mas o caminho do arquivo não foi retornado.') };
-    }
-
-    const { data: urlData } = supabase.storage
-      .from('public-images')
-      .getPublicUrl(uploadData.path); 
-
-    if (!urlData?.publicUrl) {
-      return { error: new Error('Não foi possível obter a URL pública da imagem após o upload.') };
-    }
-    const publicUrl = urlData.publicUrl;
-
-    const { error: updateError } = await supabase.auth.updateUser({
-      data: { avatar_url: publicUrl },
-    });
-
-    if (updateError) {
-      console.error('Supabase auth update user error:', JSON.stringify(updateError, null, 2));
-      return { error: new Error(updateError.message || 'Falha ao atualizar o perfil do usuário.') };
-    }
-    
-    // Optimistically update the user state with the new URL
-    setCurrentUser((prevUser) =>
-      prevUser ? { ...prevUser, avatar_url: publicUrl } : null
-    );
-
-    return { error: null };
-  };
-
-
   const value = {
     currentUser,
     login,
     register,
     logout,
     loading,
-    updateAvatar,
   };
 
   return (
