@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { ArrowLeft, Loader2, Package, Truck, CheckCircle, XCircle } from 'lucide-react';
+import { ArrowLeft, Loader2, Package, Truck, CheckCircle, XCircle, Navigation } from 'lucide-react';
 import type { Order } from '@/lib/orders';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getOrderById } from '@/app/actions/orders';
@@ -32,8 +32,8 @@ function OrderDetailSkeleton() {
         <Skeleton className="h-8 w-8 rounded-md" />
         <Skeleton className="h-6 w-48" />
       </div>
-      <div className="grid gap-8 md:grid-cols-3">
-        <div className="md:col-span-2 space-y-8">
+      <div className="grid gap-8 lg:grid-cols-3">
+        <div className="lg:col-span-2 space-y-8">
             <Card>
                 <CardHeader><Skeleton className="h-6 w-48" /></CardHeader>
                 <CardContent><Skeleton className="h-40 w-full" /></CardContent>
@@ -41,8 +41,15 @@ function OrderDetailSkeleton() {
             </Card>
         </div>
         <div className="space-y-8">
-            <Card><CardHeader><Skeleton className="h-6 w-32" /></CardHeader><CardContent className="p-6"><Skeleton className="h-28 w-full" /></CardContent></Card>
-            <Card><CardHeader><Skeleton className="h-6 w-40" /></CardHeader><CardContent className="p-6"><Skeleton className="h-20 w-full" /></CardContent></Card>
+            <Card>
+              <CardHeader><Skeleton className="h-6 w-32" /></CardHeader>
+              <CardContent className="p-6"><Skeleton className="h-28 w-full" /></CardContent>
+              <CardFooter><Skeleton className="h-10 w-full" /></CardFooter>
+            </Card>
+            <Card>
+              <CardHeader><Skeleton className="h-6 w-40" /></CardHeader>
+              <CardContent className="p-6"><Skeleton className="h-32 w-full" /></CardContent>
+            </Card>
         </div>
       </div>
     </div>
@@ -59,6 +66,20 @@ export default function UserOrderDetailPage() {
   const [order, setOrder] = React.useState<Order | null>(null);
   const [loading, setLoading] = React.useState(true);
 
+  const handleTrackOrder = () => {
+    if (!order) return;
+    const message = `Olá, me chamo ${order.customer_name}. Desejo rastrear o meu pedido #${order.id.substring(0, 8)}`;
+    const encodedMessage = encodeURIComponent(message);
+    const phoneNumber = '5577998188469';
+    const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodedMessage}`;
+
+    if (window.top) {
+        window.top.location.href = whatsappUrl;
+    } else {
+        window.location.href = whatsappUrl;
+    }
+  };
+
   React.useEffect(() => {
     if (authLoading) return;
     if (!currentUser) {
@@ -72,7 +93,7 @@ export default function UserOrderDetailPage() {
 
     const fetchOrder = async () => {
       setLoading(true);
-      const { data, error } = await getOrderById(id);
+      const { data, error } = await getOrderById(id as string);
 
       if (error || !data) {
         toast({ title: 'Erro ao buscar pedido', description: error || 'Pedido não encontrado.', variant: 'destructive' });
@@ -126,8 +147,8 @@ export default function UserOrderDetailPage() {
         </h1>
       </div>
 
-      <div className="grid gap-8 md:grid-cols-3">
-        <div className="md:col-span-2 space-y-8">
+      <div className="grid gap-8 lg:grid-cols-3 items-start">
+        <div className="lg:col-span-2 space-y-8">
             <Card>
                 <CardHeader>
                     <CardTitle>Resumo do Pedido</CardTitle>
@@ -177,33 +198,38 @@ export default function UserOrderDetailPage() {
                     <p className="text-sm text-muted-foreground">{statusText}</p>
                 </div>
             </CardContent>
+            <CardFooter>
+                <Button className="w-full" onClick={handleTrackOrder}>
+                    <Navigation className="mr-2 h-4 w-4" />
+                    Rastrear seu pedido
+                </Button>
+            </CardFooter>
           </Card>
           
           <Card>
             <CardHeader>
-              <CardTitle>Endereço de Entrega</CardTitle>
+              <CardTitle>Detalhes da Entrega</CardTitle>
             </CardHeader>
-            <CardContent className="text-sm text-muted-foreground whitespace-pre-wrap">
-                {order.shipping_address}
+            <CardContent className="grid gap-4 text-sm">
+                <div>
+                   <h3 className="font-semibold text-foreground mb-1">Endereço de Entrega</h3>
+                   <p className="text-muted-foreground whitespace-pre-wrap">{order.shipping_address}</p>
+                </div>
+                 <div className="pt-4 border-t">
+                   <h3 className="font-semibold text-foreground mb-2">Informações Adicionais</h3>
+                   <div className="grid gap-1">
+                     <div className="flex justify-between">
+                         <span className="text-muted-foreground">Data do Pedido:</span>
+                         <span className="font-medium">{formatDate(order.created_at)}</span>
+                     </div>
+                     <div className="flex justify-between">
+                         <span className="text-muted-foreground">Forma de Pagamento:</span>
+                         <span className="font-medium">{order.payment_method}</span>
+                     </div>
+                   </div>
+                 </div>
             </CardContent>
           </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Informações</CardTitle>
-            </CardHeader>
-            <CardContent className="grid gap-2 text-sm">
-                <div className="flex justify-between">
-                    <span className="text-muted-foreground">Data do Pedido:</span>
-                    <span className="font-medium">{formatDate(order.created_at)}</span>
-                </div>
-                <div className="flex justify-between">
-                    <span className="text-muted-foreground">Forma de Pagamento:</span>
-                    <span className="font-medium">{order.payment_method}</span>
-                </div>
-            </CardContent>
-          </Card>
-
         </div>
       </div>
     </div>
