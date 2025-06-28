@@ -2,7 +2,7 @@
 "use client"
 
 import * as React from "react"
-import { MoreHorizontal, Loader2 } from "lucide-react"
+import { MoreHorizontal, Loader2, Trash2 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -12,6 +12,7 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuTrigger,
+  DropdownMenuSeparator
 } from "@/components/ui/dropdown-menu"
 import {
   Table,
@@ -22,10 +23,23 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Checkbox } from "@/components/ui/checkbox"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
+
 import { cn } from "@/lib/utils"
 import { useRouter } from "next/navigation"
 import type { Order } from "@/lib/orders"
-import { getOrders } from "@/app/actions/orders"
+import { getOrders, deleteOrder, deleteOrders } from "@/app/actions/orders"
 import { useToast } from "@/hooks/use-toast"
 
 type Status = Order['status'];
@@ -42,23 +56,55 @@ export default function DashboardOrdersPage() {
   const [orders, setOrders] = React.useState<Order[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [activeTab, setActiveTab] = React.useState<Status | "Todos">("Todos");
+  const [selectedOrderIds, setSelectedOrderIds] = React.useState<string[]>([]);
+  const [isBulkSubmitting, setIsBulkSubmitting] = React.useState(false);
   const router = useRouter();
   const { toast } = useToast();
 
-  React.useEffect(() => {
-    const fetchOrders = async () => {
-        setLoading(true);
-        const { data, error } = await getOrders();
-        if (error) {
-            console.error("Error fetching orders:", error);
-            toast({ title: "Erro ao buscar pedidos", description: error, variant: "destructive" });
-        } else {
-            setOrders(data || []);
-        }
-        setLoading(false);
-    };
-    fetchOrders();
+  const fetchOrders = React.useCallback(async () => {
+    setLoading(true);
+    const { data, error } = await getOrders();
+    if (error) {
+        console.error("Error fetching orders:", error);
+        toast({ title: "Erro ao buscar pedidos", description: error, variant: "destructive" });
+    } else {
+        setOrders(data || []);
+    }
+    setLoading(false);
   }, [toast]);
+
+  React.useEffect(() => {
+    fetchOrders();
+  }, [fetchOrders]);
+  
+  React.useEffect(() => {
+    setSelectedOrderIds([]);
+  }, [activeTab]);
+
+  const handleDeleteOrder = async (orderId: string) => {
+    const { error } = await deleteOrder(orderId);
+    if (error) {
+        toast({ title: "Erro ao deletar pedido", description: error, variant: "destructive" });
+    } else {
+        toast({ title: "Pedido deletado!", description: "O pedido foi removido com sucesso." });
+        await fetchOrders();
+        setSelectedOrderIds(prev => prev.filter(id => id !== orderId));
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedOrderIds.length === 0) return;
+    setIsBulkSubmitting(true);
+    const { error } = await deleteOrders(selectedOrderIds);
+    if (error) {
+        toast({ title: 'Erro ao deletar pedidos', description: error, variant: 'destructive' });
+    } else {
+        toast({ title: 'Pedidos Removidos!', description: `${selectedOrderIds.length} pedido(s) foram removidos com sucesso.` });
+        await fetchOrders();
+        setSelectedOrderIds([]);
+    }
+    setIsBulkSubmitting(false);
+  };
 
   const filteredOrders = React.useMemo(() => {
     if (activeTab === "Todos") return orders;
@@ -84,10 +130,39 @@ export default function DashboardOrdersPage() {
   return (
     <Card>
       <CardHeader className="px-7">
-        <CardTitle>Pedidos</CardTitle>
-        <CardDescription>
-          Uma lista dos seus pedidos recentes.
-        </CardDescription>
+        <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+          <div>
+            <CardTitle>Pedidos</CardTitle>
+            <CardDescription>
+              Uma lista dos seus pedidos recentes.
+            </CardDescription>
+          </div>
+          {selectedOrderIds.length > 0 && (
+             <AlertDialog>
+                <AlertDialogTrigger asChild>
+                    <Button variant="destructive" size="sm" className="h-8 gap-1" disabled={isBulkSubmitting}>
+                         {isBulkSubmitting ? <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                        Deletar ({selectedOrderIds.length})
+                    </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Essa ação não pode ser desfeita. Isso irá deletar permanentemente os {selectedOrderIds.length} pedidos selecionados.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel disabled={isBulkSubmitting}>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleBulkDelete} disabled={isBulkSubmitting} className="bg-destructive hover:bg-destructive/90">
+                           {isBulkSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            Deletar
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+          )}
+        </div>
       </CardHeader>
       <CardContent>
         <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as Status | "Todos")}>
@@ -105,6 +180,21 @@ export default function DashboardOrdersPage() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-[40px]">
+                    <Checkbox
+                        checked={filteredOrders.length > 0 && selectedOrderIds.length === filteredOrders.length}
+                        onCheckedChange={(checked) => {
+                           const pageIds = filteredOrders.map(p => p.id);
+                           if (checked) {
+                               const newSelectedIds = [...new Set([...selectedOrderIds, ...pageIds])];
+                               setSelectedOrderIds(newSelectedIds);
+                           } else {
+                               setSelectedOrderIds(selectedOrderIds.filter(id => !pageIds.includes(id)));
+                           }
+                        }}
+                        aria-label="Selecionar todos os pedidos na página"
+                    />
+                 </TableHead>
                 <TableHead>Cliente</TableHead>
                 <TableHead className="hidden sm:table-cell">Status</TableHead>
                 <TableHead className="hidden sm:table-cell">Data</TableHead>
@@ -116,7 +206,20 @@ export default function DashboardOrdersPage() {
             </TableHeader>
             <TableBody>
               {filteredOrders.length > 0 ? filteredOrders.map(order => (
-                <TableRow key={order.id}>
+                <TableRow key={order.id} data-state={selectedOrderIds.includes(order.id) ? "selected" : ""}>
+                   <TableCell>
+                        <Checkbox 
+                            checked={selectedOrderIds.includes(order.id)}
+                            onCheckedChange={(checked) => {
+                                if (checked) {
+                                    setSelectedOrderIds([...selectedOrderIds, order.id]);
+                                } else {
+                                    setSelectedOrderIds(selectedOrderIds.filter(id => id !== order.id));
+                                }
+                            }}
+                            aria-label={`Selecionar pedido de ${order.customer_name}`}
+                        />
+                    </TableCell>
                   <TableCell>
                     <div className="font-medium">{order.customer_name}</div>
                     <div className="hidden text-sm text-muted-foreground md:inline">
@@ -149,13 +252,36 @@ export default function DashboardOrdersPage() {
                         <DropdownMenuItem onClick={() => router.push(`/dashboard/orders/${order.id}`)}>
                           Ver Detalhes
                         </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                             <button className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 w-full justify-start font-normal text-destructive hover:bg-destructive/10">
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Deletar
+                              </button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Essa ação não pode ser desfeita. Isso irá deletar permanentemente o pedido de {order.customer_name}.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => handleDeleteOrder(order.id)} className="bg-destructive hover:bg-destructive/90">
+                                Deletar
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
                 </TableRow>
               )) : (
                 <TableRow>
-                  <TableCell colSpan={5} className="h-24 text-center">
+                  <TableCell colSpan={6} className="h-24 text-center">
                     Nenhum pedido encontrado.
                   </TableCell>
                 </TableRow>

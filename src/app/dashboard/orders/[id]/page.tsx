@@ -10,10 +10,21 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { ArrowLeft, Loader2 } from 'lucide-react';
+import { ArrowLeft, Loader2, Trash2 } from 'lucide-react';
 import type { Order } from '@/lib/orders';
 import { Skeleton } from '@/components/ui/skeleton';
-import { getOrderById, updateOrderStatus } from '@/app/actions/orders';
+import { getOrderById, updateOrderStatus, deleteOrder } from '@/app/actions/orders';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 
 type Status = Order['status'];
 
@@ -58,6 +69,7 @@ export default function OrderDetailPage() {
   const [order, setOrder] = React.useState<Order | undefined>(undefined);
   const [loading, setLoading] = React.useState(true);
   const [isSaving, setIsSaving] = React.useState(false);
+  const [isDeleting, setIsDeleting] = React.useState(false);
   const [currentStatus, setCurrentStatus] = React.useState<Status>('Pendente');
 
   React.useEffect(() => {
@@ -76,6 +88,19 @@ export default function OrderDetailPage() {
     };
     fetchOrder();
   }, [id, toast]);
+
+  const handleDelete = async () => {
+    if (!order) return;
+    setIsDeleting(true);
+    const { error } = await deleteOrder(order.id);
+    if (error) {
+        toast({ title: 'Erro ao deletar pedido', description: error, variant: 'destructive' });
+        setIsDeleting(false);
+    } else {
+        toast({ title: 'Pedido deletado!', description: 'O pedido foi removido com sucesso.' });
+        router.push('/dashboard/orders');
+    }
+  };
 
   if (loading) {
     return <OrderDetailSkeleton />;
@@ -193,7 +218,7 @@ export default function OrderDetailPage() {
                 </div>
             </CardContent>
             <CardFooter>
-              <Button className="w-full" onClick={handleSaveChanges} disabled={isSaving || currentStatus === order.status}>
+              <Button className="w-full" onClick={handleSaveChanges} disabled={isSaving || isDeleting || currentStatus === order.status}>
                 {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Salvar Alterações
               </Button>
@@ -210,6 +235,38 @@ export default function OrderDetailPage() {
                 <div className="text-muted-foreground pt-2 border-t mt-2">Pedido realizado em {formatDate(order.created_at)}</div>
             </CardContent>
           </Card>
+
+           <Card>
+              <CardHeader>
+                  <CardTitle>Ações Perigosas</CardTitle>
+              </CardHeader>
+              <CardContent>
+                  <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                          <Button variant="destructive" className="w-full" disabled={isSaving || isDeleting}>
+                              {isDeleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}
+                              Deletar Pedido
+                          </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                          <AlertDialogHeader>
+                              <AlertDialogTitle>Você tem certeza absoluta?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                  Essa ação não pode ser desfeita. Isso irá deletar permanentemente o pedido de{' '}
+                                  <span className="font-semibold">{order.customer_name}</span> e remover seus dados de nossos servidores.
+                              </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                              <AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">
+                                  Deletar
+                              </AlertDialogAction>
+                          </AlertDialogFooter>
+                      </AlertDialogContent>
+                  </AlertDialog>
+              </CardContent>
+            </Card>
+
         </div>
       </div>
     </div>

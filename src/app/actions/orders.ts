@@ -106,3 +106,23 @@ export async function getOrdersByUserId(userId: string): Promise<{ data: Order[]
 
   return { data, error: error ? error.message : null };
 }
+
+export async function deleteOrder(id: string): Promise<{ error: string | null }> {
+  const supabase = createClient();
+  const { error } = await supabase
+    .from('orders')
+    .delete()
+    .eq('id', id);
+
+  return { error: error ? error.message : null };
+}
+
+export async function deleteOrders(ids: string[]): Promise<{ error: string | null }> {
+  const supabase = createClient();
+  const { error } = await supabase
+    .from('orders')
+    .delete()
+    .in('id', ids);
+
+  return { error: error ? error.message : null };
+}
