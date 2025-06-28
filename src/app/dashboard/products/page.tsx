@@ -36,6 +36,15 @@ import {
   SheetFooter,
   SheetClose,
 } from "@/components/ui/sheet"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogClose,
+} from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -80,6 +89,16 @@ export default function DashboardProductsPage() {
   const [selectedProductIds, setSelectedProductIds] = React.useState<string[]>([]);
   const [activeCategory, setActiveCategory] = React.useState<(Product['category'] | 'all')>('all');
   const [currentPage, setCurrentPage] = React.useState(1);
+  const [isMobile, setIsMobile] = React.useState(false);
+
+  React.useEffect(() => {
+    const checkIsMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    checkIsMobile();
+    window.addEventListener("resize", checkIsMobile);
+    return () => window.removeEventListener("resize", checkIsMobile);
+  }, []);
 
   const fetchProducts = React.useCallback(async () => {
     setLoading(true);
@@ -357,6 +376,121 @@ export default function DashboardProductsPage() {
     }
   };
   
+  const FormBody = (
+    <div className="grid gap-4 py-4 max-h-[calc(100vh-150px)] overflow-y-auto px-1">
+      <div className="grid gap-2">
+        <Label htmlFor="name">Nome</Label>
+        <Input id="name" name="name" value={formState.name || ''} onChange={handleInputChange} required disabled={isSubmitting} />
+      </div>
+      <div className="grid gap-2">
+        <Label htmlFor="description">Descrição Curta</Label>
+        <Textarea id="description" name="description" value={formState.description || ''} onChange={handleInputChange} required disabled={isSubmitting} />
+      </div>
+      <div className="grid gap-2">
+        <Label htmlFor="long_description">Descrição Longa</Label>
+        <Textarea id="long_description" name="long_description" rows={5} value={formState.long_description || ''} onChange={handleInputChange} required disabled={isSubmitting} />
+      </div>
+      <div className="grid gap-2">
+        <Label htmlFor="images">Imagens</Label>
+        <div className="grid grid-cols-3 gap-4 mb-2">
+          {formState.images.map((img, index) => {
+            const src = typeof img === 'string' ? img : URL.createObjectURL(img);
+            return (
+              <div key={index} className="relative aspect-square">
+                <Image
+                  src={src}
+                  alt={`Imagem do produto ${index + 1}`}
+                  fill
+                  className="rounded-md object-cover"
+                />
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="icon"
+                  className="absolute top-1 right-1 h-6 w-6 rounded-full"
+                  onClick={() => handleImageRemove(index)}
+                  disabled={isSubmitting}
+                >
+                  <X className="h-4 w-4" />
+                  <span className="sr-only">Remover imagem</span>
+                </Button>
+              </div>
+            )
+          })}
+        </div>
+        <Input
+          id="images"
+          type="file"
+          accept="image/*"
+          multiple
+          onChange={handleImageUpload}
+          disabled={isSubmitting}
+        />
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid gap-2">
+          <Label htmlFor="price">Preço</Label>
+          <Input id="price" name="price" type="number" step="0.01" value={formState.price || ''} onChange={handleInputChange} required disabled={isSubmitting} />
+        </div>
+        <div className="grid gap-2">
+          <Label htmlFor="sale_price">Preço Promocional (opcional)</Label>
+          <Input id="sale_price" name="sale_price" type="number" step="0.01" value={formState.sale_price || ''} onChange={handleInputChange} disabled={isSubmitting} />
+        </div>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid gap-2">
+          <Label htmlFor="category">Categoria</Label>
+          <Select name="category" value={formState.category} onValueChange={(value) => setFormState(p => ({...p, category: value as Product['category']}))} required disabled={isSubmitting}>
+            <SelectTrigger>
+              <SelectValue placeholder="Selecione uma categoria" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Apple">Apple</SelectItem>
+              <SelectItem value="Android">Android</SelectItem>
+              <SelectItem value="Minoxidil">Minoxidil</SelectItem>
+              <SelectItem value="Acessórios">Acessórios</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="grid gap-2">
+            <Label htmlFor="condition">Condição</Label>
+            <Select name="condition" value={formState.condition} onValueChange={(value) => setFormState(p => ({...p, condition: value as Product['condition']}))} required disabled={isSubmitting}>
+                <SelectTrigger>
+                    <SelectValue placeholder="Selecione a condição" />
+                </SelectTrigger>
+                <SelectContent>
+                    <SelectItem value="Novo">Novo</SelectItem>
+                    <SelectItem value="Lacrado">Lacrado</SelectItem>
+                    <SelectItem value="Recondicionado">Recondicionado</SelectItem>
+                </SelectContent>
+            </Select>
+        </div>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+         <div className="grid gap-2">
+            <Label htmlFor="stock">Estoque</Label>
+            <Input id="stock" name="stock" type="number" value={formState.stock || ''} onChange={handleInputChange} required disabled={isSubmitting} />
+        </div>
+         <div className="grid gap-2">
+            <Label htmlFor="status">Status</Label>
+            <Select name="status" value={formState.status} onValueChange={(value) => setFormState(p => ({...p, status: value as Product['status']}))} required disabled={isSubmitting}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione um status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ativo">Ativo</SelectItem>
+                <SelectItem value="rascunho">Rascunho</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+      </div>
+      <div className="flex items-center space-x-2 pt-2">
+        <Switch id="featured" name="featured" checked={formState.featured} onCheckedChange={(checked) => setFormState(p => ({...p, featured: checked}))} disabled={isSubmitting} />
+        <Label htmlFor="featured">Produto em Destaque?</Label>
+      </div>
+    </div>
+  );
+
   return (
     <>
       <div className="flex items-center gap-2 mb-4">
@@ -578,139 +712,55 @@ export default function DashboardProductsPage() {
         </CardFooter>
       </Card>
       
-      <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
-        <SheetContent className="sm:max-w-lg">
-          <form onSubmit={handleFormSubmit}>
-            <SheetHeader>
-              <SheetTitle>{editingProduct ? 'Editar Produto' : 'Adicionar Novo Produto'}</SheetTitle>
-              <SheetDescription>
-                Preencha os detalhes do produto aqui. Clique em salvar quando terminar.
-              </SheetDescription>
-            </SheetHeader>
-            <div className="grid gap-4 py-4 max-h-[80vh] overflow-y-auto px-1">
-              <div className="grid gap-2">
-                <Label htmlFor="name">Nome</Label>
-                <Input id="name" name="name" value={formState.name || ''} onChange={handleInputChange} required disabled={isSubmitting} />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="description">Descrição Curta</Label>
-                <Textarea id="description" name="description" value={formState.description || ''} onChange={handleInputChange} required disabled={isSubmitting} />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="long_description">Descrição Longa</Label>
-                <Textarea id="long_description" name="long_description" rows={5} value={formState.long_description || ''} onChange={handleInputChange} required disabled={isSubmitting} />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="images">Imagens</Label>
-                <div className="grid grid-cols-3 gap-4 mb-2">
-                  {formState.images.map((img, index) => {
-                    const src = typeof img === 'string' ? img : URL.createObjectURL(img);
-                    return (
-                      <div key={index} className="relative aspect-square">
-                        <Image
-                          src={src}
-                          alt={`Imagem do produto ${index + 1}`}
-                          fill
-                          className="rounded-md object-cover"
-                        />
-                        <Button
-                          type="button"
-                          variant="destructive"
-                          size="icon"
-                          className="absolute top-1 right-1 h-6 w-6 rounded-full"
-                          onClick={() => handleImageRemove(index)}
-                          disabled={isSubmitting}
-                        >
-                          <X className="h-4 w-4" />
-                          <span className="sr-only">Remover imagem</span>
-                        </Button>
-                      </div>
-                    )
-                  })}
-                </div>
-                <Input
-                  id="images"
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  onChange={handleImageUpload}
-                  disabled={isSubmitting}
-                />
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="price">Preço</Label>
-                  <Input id="price" name="price" type="number" step="0.01" value={formState.price || ''} onChange={handleInputChange} required disabled={isSubmitting} />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="sale_price">Preço Promocional (opcional)</Label>
-                  <Input id="sale_price" name="sale_price" type="number" step="0.01" value={formState.sale_price || ''} onChange={handleInputChange} disabled={isSubmitting} />
-                </div>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="category">Categoria</Label>
-                  <Select name="category" value={formState.category} onValueChange={(value) => setFormState(p => ({...p, category: value as Product['category']}))} required disabled={isSubmitting}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione uma categoria" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Apple">Apple</SelectItem>
-                      <SelectItem value="Android">Android</SelectItem>
-                      <SelectItem value="Minoxidil">Minoxidil</SelectItem>
-                      <SelectItem value="Acessórios">Acessórios</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="grid gap-2">
-                    <Label htmlFor="condition">Condição</Label>
-                    <Select name="condition" value={formState.condition} onValueChange={(value) => setFormState(p => ({...p, condition: value as Product['condition']}))} required disabled={isSubmitting}>
-                        <SelectTrigger>
-                            <SelectValue placeholder="Selecione a condição" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="Novo">Novo</SelectItem>
-                            <SelectItem value="Lacrado">Lacrado</SelectItem>
-                            <SelectItem value="Recondicionado">Recondicionado</SelectItem>
-                        </SelectContent>
-                    </Select>
-                </div>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                 <div className="grid gap-2">
-                    <Label htmlFor="stock">Estoque</Label>
-                    <Input id="stock" name="stock" type="number" value={formState.stock || ''} onChange={handleInputChange} required disabled={isSubmitting} />
-                </div>
-                 <div className="grid gap-2">
-                    <Label htmlFor="status">Status</Label>
-                    <Select name="status" value={formState.status} onValueChange={(value) => setFormState(p => ({...p, status: value as Product['status']}))} required disabled={isSubmitting}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione um status" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="ativo">Ativo</SelectItem>
-                        <SelectItem value="rascunho">Rascunho</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-              </div>
-              <div className="flex items-center space-x-2 pt-2">
-                <Switch id="featured" name="featured" checked={formState.featured} onCheckedChange={(checked) => setFormState(p => ({...p, featured: checked}))} disabled={isSubmitting} />
-                <Label htmlFor="featured">Produto em Destaque?</Label>
-              </div>
-            </div>
-            <SheetFooter>
-              <SheetClose asChild>
-                <Button variant="outline" disabled={isSubmitting}>Cancelar</Button>
-              </SheetClose>
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Salvar produto
-              </Button>
-            </SheetFooter>
-          </form>
-        </SheetContent>
-      </Sheet>
+      {isMobile ? (
+        <Dialog open={isSheetOpen} onOpenChange={setIsSheetOpen}>
+          <DialogContent className="sm:max-w-lg">
+            <form onSubmit={handleFormSubmit}>
+              <DialogHeader>
+                <DialogTitle>{editingProduct ? 'Editar Produto' : 'Adicionar Novo Produto'}</DialogTitle>
+                <DialogDescription>
+                  Preencha os detalhes do produto aqui. Clique em salvar quando terminar.
+                </DialogDescription>
+              </DialogHeader>
+              {FormBody}
+              <DialogFooter>
+                <DialogClose asChild>
+                  <Button type="button" variant="outline" disabled={isSubmitting}>Cancelar</Button>
+                </DialogClose>
+                <Button type="submit" disabled={isSubmitting}>
+                  {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Salvar produto
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+      ) : (
+        <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
+          <SheetContent className="sm:max-w-lg">
+            <form onSubmit={handleFormSubmit}>
+              <SheetHeader>
+                <SheetTitle>{editingProduct ? 'Editar Produto' : 'Adicionar Novo Produto'}</SheetTitle>
+                <SheetDescription>
+                  Preencha os detalhes do produto aqui. Clique em salvar quando terminar.
+                </SheetDescription>
+              </SheetHeader>
+              {FormBody}
+              <SheetFooter>
+                <SheetClose asChild>
+                  <Button type="button" variant="outline" disabled={isSubmitting}>Cancelar</Button>
+                </SheetClose>
+                <Button type="submit" disabled={isSubmitting}>
+                  {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Salvar produto
+                </Button>
+              </SheetFooter>
+            </form>
+          </SheetContent>
+        </Sheet>
+      )}
     </>
   )
 }
+
+    
