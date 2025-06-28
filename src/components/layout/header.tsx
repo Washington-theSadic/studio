@@ -2,7 +2,8 @@
 "use client";
 
 import Link from 'next/link';
-import { ShoppingCart, Menu, User, LogOut, LifeBuoy } from 'lucide-react';
+import { usePathname } from 'next/navigation';
+import { ShoppingCart, Menu, User, LogOut, LifeBuoy, Home, Package, LayoutDashboard, UserPlus, LogIn } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useCart } from '@/context/cart-context';
 import { useAuth } from '@/context/auth-context';
@@ -19,27 +20,43 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Skeleton } from '../ui/skeleton';
+import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
+import { Separator } from '../ui/separator';
 
-const NavLinks = ({ className, onLinkClick, isAdmin }: { className?: string, onLinkClick?: () => void, isAdmin: boolean }) => (
-  <nav className={cn("flex items-center gap-6", className)}>
-    <Link href="/" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors" onClick={onLinkClick}>
-      Início
-    </Link>
-    <Link href="/products" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors" onClick={onLinkClick}>
-      Produtos
-    </Link>
-    {isAdmin && (
-      <Link href="/dashboard" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors" onClick={onLinkClick}>
-        Dashboard
-      </Link>
-    )}
-  </nav>
-);
+const DesktopNavLinks = ({ isAdmin }: { isAdmin: boolean }) => {
+    const pathname = usePathname();
+    const links = [
+        { href: '/', label: 'Início' },
+        { href: '/products', label: 'Produtos' },
+    ];
+    if (isAdmin) {
+        links.push({ href: '/dashboard', label: 'Dashboard' });
+    }
+
+    return (
+        <nav className="flex items-center gap-6">
+            {links.map(link => (
+                 <Link
+                    key={link.href}
+                    href={link.href}
+                    className={cn(
+                        "text-sm font-medium transition-colors hover:text-foreground",
+                        pathname === link.href ? "text-foreground" : "text-muted-foreground"
+                    )}
+                >
+                    {link.label}
+                </Link>
+            ))}
+        </nav>
+    );
+};
+
 
 export default function Header() {
   const { cartCount } = useCart();
   const { currentUser, logout, loading } = useAuth();
   const isMobile = useIsMobile();
+  const pathname = usePathname();
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
@@ -77,11 +94,16 @@ export default function Header() {
     const encodedMessage = encodeURIComponent(message);
     const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodedMessage}`;
 
-    window.location.href = whatsappUrl;
+    if (window.top) {
+       window.top.location.href = whatsappUrl;
+    } else {
+       window.location.href = whatsappUrl;
+    }
+    
     setIsSheetOpen(false);
   };
 
-  const AuthNav = ({ onLinkClick }: { onLinkClick?: () => void }) => {
+  const AuthNav = () => {
     if (loading) return <Skeleton className="h-9 w-24" />;
 
     if (currentUser) {
@@ -89,23 +111,23 @@ export default function Header() {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="flex items-center gap-2">
-              <User className="h-5 w-5" />
-              <span className="hidden md:inline">{currentUser.name}</span>
+              <Avatar className="h-7 w-7">
+                  <AvatarImage src={currentUser.avatar_url || `https://i.pravatar.cc/150?u=${currentUser.id}`} alt={currentUser.name} data-ai-hint="avatar person" />
+                  <AvatarFallback>{currentUser.name.substring(0, 1)}</AvatarFallback>
+              </Avatar>
+              <span className="hidden md:inline">{currentUser.name.split(' ')[0]}</span>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuLabel>Olá, {currentUser.name}!</DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
-              <Link href="/account" onClick={onLinkClick}>
+              <Link href="/account">
                 <User className="mr-2 h-4 w-4" />
                 <span>Minha Conta</span>
               </Link>
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => {
-              logout();
-              if (onLinkClick) onLinkClick();
-            }}>
+            <DropdownMenuItem onClick={logout}>
               <LogOut className="mr-2 h-4 w-4" />
               <span>Sair</span>
             </DropdownMenuItem>
@@ -116,15 +138,31 @@ export default function Header() {
 
     return (
        <div className="flex items-center gap-2">
-         <Button asChild variant="ghost" size="sm">
-            <Link href="/login" onClick={onLinkClick}>Login</Link>
+         <Button asChild variant="ghost" size="sm" onClick={handleLinkClick}>
+            <Link href="/login">Login</Link>
          </Button>
-         <Button asChild size="sm">
-            <Link href="/register" onClick={onLinkClick}>Cadastre-se</Link>
+         <Button asChild size="sm" onClick={handleLinkClick}>
+            <Link href="/register">Cadastre-se</Link>
          </Button>
        </div>
     );
   };
+
+  const MobileNavLink = ({ href, children }: { href: string; children: React.ReactNode }) => {
+    const isActive = pathname === href;
+    return (
+        <Link 
+            href={href}
+            onClick={handleLinkClick}
+            className={cn(
+                "flex items-center gap-3 rounded-lg px-3 py-2.5 text-foreground/80 transition-all hover:bg-accent hover:text-accent-foreground text-base",
+                isActive && "bg-accent text-foreground font-semibold"
+            )}
+        >
+            {children}
+        </Link>
+    )
+  }
   
   const headerClass = isMounted && isScrolled ? "bg-background/80 backdrop-blur-sm border-b border-border/30" : "bg-transparent";
 
@@ -136,7 +174,7 @@ export default function Header() {
             JC MARKETPLACE
           </Link>
           <div className="hidden md:flex items-center gap-8">
-            <NavLinks isAdmin={false} />
+            <DesktopNavLinks isAdmin={false} />
             <div className="flex items-center gap-4">
               <Skeleton className="h-9 w-36" />
               <Skeleton className="h-9 w-28" />
@@ -178,32 +216,96 @@ export default function Header() {
                   <Menu className="h-5 w-5" />
                 </Button>
               </SheetTrigger>
-              <SheetContent className="flex flex-col">
-                <SheetHeader>
+              <SheetContent className="flex flex-col p-0">
+                <SheetHeader className="p-4 border-b">
                   <SheetTitle>Menu</SheetTitle>
                 </SheetHeader>
-                <div className="flex-grow pt-6">
-                  <div className="flex flex-col gap-6">
-                    <NavLinks className="flex-col text-lg items-start" onLinkClick={handleLinkClick} isAdmin={isAdmin} />
-                    <div className="border-t pt-6">
-                      <AuthNav onLinkClick={handleLinkClick} />
+                
+                <div className="flex-grow flex flex-col overflow-y-auto">
+                   {loading ? (
+                       <div className="p-4 space-y-4">
+                           <Skeleton className="h-14 w-full" />
+                           <Separator />
+                           <Skeleton className="h-10 w-full" />
+                           <Skeleton className="h-10 w-full" />
+                           <Skeleton className="h-10 w-full" />
+                       </div>
+                   ) : currentUser ? (
+                        <>
+                            <div className="p-4 bg-muted/20 border-b">
+                                <Link href="/account" onClick={handleLinkClick} className="flex items-center gap-4 group">
+                                    <Avatar className="h-14 w-14">
+                                        <AvatarImage src={currentUser.avatar_url || `https://i.pravatar.cc/150?u=${currentUser.id}`} alt={currentUser.name} data-ai-hint="avatar person" />
+                                        <AvatarFallback>{currentUser.name.substring(0, 2).toUpperCase()}</AvatarFallback>
+                                    </Avatar>
+                                    <div className="min-w-0">
+                                        <p className="font-semibold text-lg text-foreground truncate group-hover:text-brand">{currentUser.name}</p>
+                                        <p className="text-sm text-muted-foreground">Ver perfil</p>
+                                    </div>
+                                </Link>
+                            </div>
+                            <nav className="flex-1 p-4 space-y-1">
+                                <p className="text-xs font-medium uppercase text-muted-foreground px-3 pt-2 pb-1">Navegação</p>
+                                <MobileNavLink href="/">
+                                    <Home className="h-5 w-5" />
+                                    Início
+                                </MobileNavLink>
+                                <MobileNavLink href="/products">
+                                    <Package className="h-5 w-5" />
+                                    Produtos
+                                </MobileNavLink>
+                                {isAdmin && (
+                                    <MobileNavLink href="/dashboard">
+                                        <LayoutDashboard className="h-5 w-5" />
+                                        Dashboard
+                                    </MobileNavLink>
+                                )}
+                                <Separator className="my-4" />
+                                <MobileNavLink href="/account">
+                                    <User className="h-5 w-5" />
+                                    Minha Conta
+                                </MobileNavLink>
+                                 <button
+                                    onClick={() => {
+                                        logout();
+                                        handleLinkClick();
+                                    }}
+                                    className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-base text-foreground/80 transition-all hover:bg-accent hover:text-accent-foreground w-full"
+                                >
+                                    <LogOut className="h-5 w-5" />
+                                    Sair
+                                </button>
+                            </nav>
+                        </>
+                   ) : (
+                       <nav className="p-4 space-y-2">
+                           <MobileNavLink href="/login">
+                               <LogIn className="h-5 w-5" />
+                               Login
+                           </MobileNavLink>
+                           <MobileNavLink href="/register">
+                               <UserPlus className="h-5 w-5" />
+                               Cadastre-se
+                           </MobileNavLink>
+                       </nav>
+                   )}
+                
+                  {currentUser && (
+                    <div className="mt-auto border-t p-4">
+                        <Button variant="outline" className="w-full justify-start text-base py-6" onClick={handleHelpClick}>
+                            <LifeBuoy className="mr-3 h-5 w-5" />
+                            <span>Precisa de ajuda?</span>
+                        </Button>
                     </div>
-                  </div>
+                  )}
                 </div>
-                {currentUser && (
-                  <div className="mt-auto border-t pt-4">
-                    <Button variant="outline" className="w-full justify-start" onClick={handleHelpClick}>
-                      <LifeBuoy className="mr-2 h-4 w-4" />
-                      <span>Precisa de ajuda?</span>
-                    </Button>
-                  </div>
-                )}
+
               </SheetContent>
             </Sheet>
           </div>
         ) : (
           <div className="flex items-center gap-8">
-            <NavLinks isAdmin={isAdmin} />
+            <DesktopNavLinks isAdmin={isAdmin} />
             <div className="flex items-center gap-4">
               <Link href="/cart" passHref>
                 <Button variant="ghost" className="relative" aria-label={`Carrinho com ${cartCount} itens`}>
@@ -224,3 +326,4 @@ export default function Header() {
     </header>
   );
 }
+
