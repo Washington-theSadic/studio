@@ -113,7 +113,7 @@ export default function DashboardPage() {
     fetchOrders();
   }, [toast]);
 
-  const recentOrders = orders.slice(0, 5);
+  const recentOrders = React.useMemo(() => orders.slice(0, 5), [orders]);
   const totalRevenue = orders.reduce((sum, order) => sum + order.total_price, 0);
   const totalSales = orders.length;
 
@@ -273,4 +273,5 @@ export default function DashboardPage() {
         </div>
     </div>
   )
-}
+
+    
