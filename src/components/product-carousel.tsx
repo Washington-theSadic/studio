@@ -1,7 +1,6 @@
 
 "use client";
 
-import { useState, useEffect } from 'react';
 import type { Product } from '@/lib/products';
 import { Carousel, CarouselContent, CarouselItem } from '@/components/ui/carousel';
 import ProductCard from './product-card';
@@ -12,56 +11,46 @@ type ProductCarouselProps = {
 };
 
 export default function ProductCarousel({ products, animationDelayStart = 0 }: ProductCarouselProps) {
-  const [isMobile, setIsMobile] = useState(false);
-
-  useEffect(() => {
-    const checkDevice = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-
-    checkDevice();
-    window.addEventListener('resize', checkDevice);
-
-    return () => {
-      window.removeEventListener('resize', checkDevice);
-    };
-  }, []);
-
-  if (isMobile) {
-    return (
-      <Carousel
-        opts={{
-          align: "center",
-          loop: false,
-        }}
-        className="w-full"
-      >
-        <CarouselContent className="-ml-4">
-          {products.map((product, index) => (
-            <CarouselItem key={index} className="pl-4 basis-[70%] sm:basis-1/2">
-              <ProductCard product={product} />
-            </CarouselItem>
-          ))}
-        </CarouselContent>
-      </Carousel>
-    );
-  }
-
+  // No more useState or useEffect for mobile detection.
+  // We now render both versions and use CSS to show/hide them.
+  
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
-      {products.map((product, i) => (
-        <div
-          key={product.id}
-          className="animate-fade-in-up"
-          style={{
-            animationDelay: `${animationDelayStart + i * 0.1}s`,
-            animationFillMode: 'forwards',
-            opacity: 0
+    <>
+      {/* Mobile-only Carousel, hidden on medium screens and up */}
+      <div className="md:hidden">
+        <Carousel
+          opts={{
+            align: "start",
+            loop: false,
           }}
+          className="w-full"
         >
-          <ProductCard product={product} />
-        </div>
-      ))}
-    </div>
+          <CarouselContent className="-ml-4">
+            {products.map((product) => (
+              <CarouselItem key={`${product.id}-mobile`} className="pl-4 basis-[70%] sm:basis-1/2">
+                <ProductCard product={product} />
+              </CarouselItem>
+            ))}
+          </CarouselContent>
+        </Carousel>
+      </div>
+
+      {/* Desktop-only Grid, hidden on small screens */}
+      <div className="hidden md:grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
+        {products.map((product, i) => (
+          <div
+            key={`${product.id}-desktop`}
+            className="animate-fade-in-up"
+            style={{
+              animationDelay: `${animationDelayStart + i * 0.1}s`,
+              animationFillMode: 'forwards',
+              opacity: 0
+            }}
+          >
+            <ProductCard product={product} />
+          </div>
+        ))}
+      </div>
+    </>
   );
 }

@@ -107,23 +107,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return { error: new Error("Nenhum arquivo válido foi selecionado.") };
     }
 
-    // Mirroring working product upload logic for robustness
-    const fileName = `${crypto.randomUUID()}-${file.name}`;
+    // Path inside the bucket: avatars/USER_ID/RANDOM_UUID.ext
+    // This is a common secure pattern for user-specific files.
+    const fileExtension = file.name.split('.').pop();
+    const filePath = `avatars/${currentUser.id}/${crypto.randomUUID()}.${fileExtension}`;
     
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from('public-images')
-      .upload(fileName, file);
+      .upload(filePath, file);
 
     if (uploadError) {
-      console.error('Supabase Storage upload error:', uploadError);
+      // Log the full error object for better debugging
+      console.error('Supabase Storage upload error:', JSON.stringify(uploadError, null, 2));
       const message =
         (uploadError as any).message ||
-        'Falha no upload da imagem. Verifique as permissões de armazenamento (RLS).';
+        'Falha no upload da imagem. Verifique se as permissões de armazenamento (RLS) permitem a inserção em pastas com o seu ID de usuário.';
       return { error: new Error(message) };
     }
 
-    // The path is needed to get the public URL.
-    const filePath = uploadData.path;
     const { data: urlData } = supabase.storage
       .from('public-images')
       .getPublicUrl(filePath);
@@ -137,12 +138,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       };
     }
 
-    const { error: updateError } = await supabase.auth.updateUser({
+    const { data: updatedUserData, error: updateError } = await supabase.auth.updateUser({
       data: { avatar_url: publicUrl },
     });
 
     if (updateError) {
-      console.error('Supabase auth update user error:', updateError);
+      console.error('Supabase auth update user error:', JSON.stringify(updateError, null, 2));
       return {
         error: new Error(
           updateError.message || 'Falha ao atualizar o perfil do usuário.'
@@ -150,7 +151,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       };
     }
 
-    // Update the local user state with the correct new URL.
+    // Update the local user state with the correct new URL, which we already have.
+    // This avoids issues where the returned user object from updateUser might not be fresh.
     setCurrentUser((prevUser) =>
       prevUser
         ? {
