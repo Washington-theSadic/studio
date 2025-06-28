@@ -108,26 +108,31 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const fileName = `${currentUser.id}-${Date.now()}.${fileExt}`;
         const filePath = `avatars/${fileName}`;
 
+        // Step 1: Upload the file
         const { error: uploadError } = await supabase.storage
             .from('public-images')
             .upload(filePath, file, { upsert: true });
 
-        if (uploadError) {
-            throw uploadError;
-        }
+        if (uploadError) throw uploadError;
 
-        const { data: { publicUrl } } = supabase.storage
+        // Step 2: Get the public URL
+        const { data: urlData } = supabase.storage
             .from('public-images')
             .getPublicUrl(filePath);
 
+        if (!urlData?.publicUrl) {
+            throw new Error("Não foi possível obter a URL pública da imagem.");
+        }
+        const publicUrl = urlData.publicUrl;
+
+        // Step 3: Update the user metadata
         const { data: updatedUserData, error: updateError } = await supabase.auth.updateUser({
             data: { avatar_url: publicUrl }
         });
 
-        if (updateError) {
-            throw updateError;
-        }
+        if (updateError) throw updateError;
 
+        // Step 4: Update the local user state
         if (updatedUserData.user) {
              setCurrentUser(prevUser => prevUser ? {
                 ...prevUser,
@@ -138,7 +143,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return { error: null };
     } catch (error: any) {
         console.error("Avatar update error:", error);
-        return { error: new Error(error.message || "Ocorreu um erro desconhecido.") };
+        // Create a more robust error message, as Supabase errors can vary.
+        const errorMessage = error.message || error.error_description || 'Ocorreu um erro desconhecido ao tentar atualizar a foto.';
+        return { error: new Error(errorMessage) };
     }
   };
 
