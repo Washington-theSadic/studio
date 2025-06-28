@@ -89,11 +89,21 @@ export async function getOrderById(id: string): Promise<{ data: Order | null, er
   return { data, error: error ? error.message : null };
 }
 
-export async function updateOrderStatus(id: string, status: Order['status']): Promise<{ data: Order | null, error: string | null }> {
+export async function updateOrderStatus(id: string, status: Order['status'], cancellationReason?: string | null): Promise<{ data: Order | null, error: string | null }> {
   const supabase = createClient();
+  
+  const payload: { status: Order['status']; cancellation_reason?: string | null } = { status };
+  
+  if (status === 'Cancelado') {
+    payload.cancellation_reason = cancellationReason;
+  } else {
+    // Clear reason if status is changed to something other than canceled
+    payload.cancellation_reason = null;
+  }
+
   const { data, error } = await supabase
     .from('orders')
-    .update({ status: status })
+    .update(payload)
     .eq('id', id)
     .select()
     .single();

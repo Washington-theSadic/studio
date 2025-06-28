@@ -3,7 +3,7 @@
 
 import * as React from 'react';
 import { useParams, notFound, useRouter } from 'next/navigation';
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -25,6 +25,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import { Textarea } from '@/components/ui/textarea';
 
 type Status = Order['status'];
 
@@ -72,6 +73,9 @@ export default function OrderDetailPage() {
   const [isSaving, setIsSaving] = React.useState(false);
   const [isDeleting, setIsDeleting] = React.useState(false);
   const [currentStatus, setCurrentStatus] = React.useState<Status>('Pendente');
+  
+  const [isCancelDialogOpen, setIsCancelDialogOpen] = React.useState(false);
+  const [cancellationReason, setCancellationReason] = React.useState('');
 
   React.useEffect(() => {
     if (!id || typeof id !== 'string') return;
@@ -130,26 +134,52 @@ export default function OrderDetailPage() {
   };
   
   const handleSaveChanges = async () => {
-    if (!order) return;
+    if (!order || currentStatus === order.status) return;
+
+    if (currentStatus === 'Cancelado') {
+        setCancellationReason(order.cancellation_reason || '');
+        setIsCancelDialogOpen(true);
+    } else {
+        setIsSaving(true);
+        const { data, error } = await updateOrderStatus(order.id, currentStatus, null);
+        if (error) {
+           toast({ title: 'Erro ao salvar', description: error, variant: 'destructive' });
+        } else if (data) {
+            setOrder(data);
+            setCurrentStatus(data.status);
+            toast({
+              title: 'Status do Pedido Atualizado!',
+              description: `O status do pedido foi alterado para "${data.status}".`,
+            });
+        }
+        setIsSaving(false);
+    }
+  };
+  
+  const handleConfirmCancellation = async () => {
+    if (!order || !cancellationReason.trim()) {
+        toast({ title: 'Motivo obrigatório', description: 'Por favor, informe o motivo do cancelamento.', variant: 'destructive' });
+        return;
+    }
     setIsSaving(true);
-    const { data, error } = await updateOrderStatus(order.id, currentStatus);
+    setIsCancelDialogOpen(false);
+    
+    const { data, error } = await updateOrderStatus(order.id, 'Cancelado', cancellationReason);
 
     if (error) {
-       toast({ title: 'Erro ao salvar', description: error, variant: 'destructive' });
-    } else {
-      if (data) {
-        setOrder({ ...order, status: data.status });
+       toast({ title: 'Erro ao cancelar pedido', description: error, variant: 'destructive' });
+    } else if (data) {
+        setOrder(data);
         setCurrentStatus(data.status);
-        toast({
-          title: 'Status do Pedido Atualizado!',
-          description: `O status do pedido #${order.id.substring(0, 8)}... foi alterado para "${data.status}".`,
-        });
-      }
+        toast({ title: 'Pedido Cancelado!', description: 'O pedido foi cancelado com sucesso.' });
     }
+
+    setCancellationReason('');
     setIsSaving(false);
   };
 
   return (
+    <>
     <div className="space-y-6">
        <div className="flex items-center gap-4">
         <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => router.back()}>
@@ -201,6 +231,11 @@ export default function OrderDetailPage() {
            <Card>
             <CardHeader>
               <CardTitle>Status do Pedido</CardTitle>
+              {order.status === 'Cancelado' && order.cancellation_reason && (
+                <CardDescription className="pt-2 text-destructive">
+                  <strong>Motivo:</strong> {order.cancellation_reason}
+                </CardDescription>
+              )}
             </CardHeader>
             <CardContent className="space-y-4">
                 <Badge className={cn('text-base w-full justify-center border-transparent', statusColors[currentStatus])}>
@@ -275,5 +310,29 @@ export default function OrderDetailPage() {
         </div>
       </div>
     </div>
+    <AlertDialog open={isCancelDialogOpen} onOpenChange={setIsCancelDialogOpen}>
+        <AlertDialogContent>
+            <AlertDialogHeader>
+                <AlertDialogTitle>Cancelar Pedido</AlertDialogTitle>
+                <AlertDialogDescription>
+                    Por favor, informe o motivo do cancelamento. Essa informação será exibida para o cliente.
+                </AlertDialogDescription>
+            </AlertDialogHeader>
+            <Textarea
+                placeholder="Ex: Produto fora de estoque."
+                value={cancellationReason}
+                onChange={(e) => setCancellationReason(e.target.value)}
+                rows={3}
+            />
+            <AlertDialogFooter>
+                <AlertDialogCancel onClick={() => setCurrentStatus(order.status)}>Voltar</AlertDialogCancel>
+                <AlertDialogAction onClick={handleConfirmCancellation} disabled={!cancellationReason.trim() || isSaving}>
+                    {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Confirmar Cancelamento
+                </AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }

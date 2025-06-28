@@ -213,6 +213,11 @@ export default function UserOrderDetailPage() {
                 <div className="space-y-1">
                     <p className="font-semibold text-lg">{order.status}</p>
                     <p className="text-sm text-muted-foreground">{statusText}</p>
+                    {order.status === 'Cancelado' && order.cancellation_reason && (
+                      <p className="text-sm text-destructive/90 pt-2">
+                        <strong>Motivo:</strong> {order.cancellation_reason}
+                      </p>
+                    )}
                 </div>
             </CardContent>
             {(order.status === 'Enviado' || order.status === 'Em rota de entrega') && (

@@ -17,6 +17,7 @@ export type Order = {
   shipping_address: string;
   payment_method: string;
   status: 'Pendente' | 'Processando' | 'Enviado' | 'Em rota de entrega' | 'Entregue' | 'Cancelado';
+  cancellation_reason?: string | null;
 };
 
 // Data is now fetched from Supabase, this is kept for type reference.
