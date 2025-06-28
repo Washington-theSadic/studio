@@ -90,21 +90,41 @@ export default function UserOrdersPage() {
                     <Loader2 className="h-6 w-6 animate-spin mx-auto" />
                   </div>
                 ) : userOrders.length > 0 ? (
-                    <div className="divide-y">
+                    <div className="divide-y divide-border">
                         {userOrders.map(order => (
-                            <div key={order.id} className="p-6 grid grid-cols-2 md:grid-cols-4 gap-4 items-center">
-                                <div>
-                                    <p className="font-semibold">Pedido #{order.id.substring(0,8)}...</p>
-                                    <p className="text-sm text-muted-foreground">{formatDate(order.created_at)}</p>
+                             <div key={order.id} className="p-4 md:p-6 md:grid md:grid-cols-5 md:gap-4 md:items-center">
+                                {/* Mobile View */}
+                                <div className="md:hidden">
+                                    <div className="flex justify-between items-start mb-4">
+                                        <div>
+                                            <p className="font-semibold">Pedido #{order.id.substring(0,8)}...</p>
+                                            <p className="text-sm text-muted-foreground">{formatDate(order.created_at)}</p>
+                                        </div>
+                                        <Badge className={cn('text-xs flex-shrink-0', statusColors[order.status])}>
+                                            {order.status}
+                                        </Badge>
+                                    </div>
+                                    <div className="flex justify-between items-center">
+                                        <span className="font-bold text-lg">{formatPrice(order.total_price)}</span>
+                                        <Button variant="outline" size="sm" onClick={() => router.push(`/account/orders/${order.id}`)}>Ver Detalhes</Button>
+                                    </div>
                                 </div>
-                                <div>
-                                    <Badge className={cn('text-xs w-full justify-center text-center', statusColors[order.status])}>
-                                        {order.status}
-                                    </Badge>
-                                </div>
-                                <p className="font-medium text-right md:text-center">{formatPrice(order.total_price)}</p>
-                                <div className="text-right col-span-2 md:col-span-1">
-                                    <Button variant="outline" size="sm" onClick={() => router.push(`/account/orders/${order.id}`)}>Ver Detalhes</Button>
+
+                                {/* Desktop View */}
+                                <div className="hidden md:contents">
+                                    <div className="col-span-2">
+                                        <p className="font-semibold">Pedido #{order.id.substring(0,8)}...</p>
+                                        <p className="text-sm text-muted-foreground">{formatDate(order.created_at)}</p>
+                                    </div>
+                                    <div className="text-center">
+                                        <Badge className={cn('text-xs', statusColors[order.status])}>
+                                            {order.status}
+                                        </Badge>
+                                    </div>
+                                    <p className="font-medium text-center">{formatPrice(order.total_price)}</p>
+                                    <div className="text-right">
+                                        <Button variant="outline" size="sm" onClick={() => router.push(`/account/orders/${order.id}`)}>Ver Detalhes</Button>
+                                    </div>
                                 </div>
                             </div>
                         ))}
