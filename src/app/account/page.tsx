@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '@/context/auth-context';
 import { useRouter } from 'next/navigation';
 import { User, MapPin, Package, KeyRound, Camera, Loader2, PlusCircle } from 'lucide-react';
@@ -128,6 +128,7 @@ export default function AccountPage() {
   const router = useRouter();
   const { toast } = useToast();
   const [supabase] = useState(() => createClient());
+  const avatarInputRef = useRef<HTMLInputElement>(null);
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -207,8 +208,10 @@ export default function AccountPage() {
         description: "Sua nova foto já está visível.",
       });
     }
-     // Reset file input
-    event.target.value = '';
+     // Reset file input using the ref
+    if (avatarInputRef.current) {
+        avatarInputRef.current.value = '';
+    }
   };
 
   if (loading || !currentUser) {
@@ -262,7 +265,7 @@ export default function AccountPage() {
                 <label htmlFor="avatar-upload" className={cn("cursor-pointer", isUploading && "cursor-not-allowed")}>
                     <Camera className="h-4 w-4" />
                 </label>
-                <input id="avatar-upload" type="file" className="sr-only" onChange={handleAvatarChange} accept="image/png, image/jpeg, image/webp" disabled={isUploading} />
+                <input ref={avatarInputRef} id="avatar-upload" type="file" className="sr-only" onChange={handleAvatarChange} accept="image/png, image/jpeg, image/webp" disabled={isUploading} />
                 <span className="sr-only">Alterar foto</span>
             </Button>
         </div>
