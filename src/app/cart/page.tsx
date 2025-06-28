@@ -124,23 +124,27 @@ export default function CartPage() {
 
     if (error) {
         toast({ title: "Erro ao buscar endereços", description: error.message, variant: "destructive" });
+        setAddresses([]);
     } else {
         setAddresses(data || []);
-        if (data && data.length > 0 && !selectedAddress) {
-            setSelectedAddress(data[0].id);
-        }
     }
     setIsAddressesLoading(false);
-  }, [supabase, toast, selectedAddress]);
+  }, [supabase, toast]);
   
   useEffect(() => {
     if (currentUser && !authLoading) {
       fetchAddresses(currentUser.id);
     } else if (!authLoading) {
-      // If user is not logged in, stop loading
       setIsAddressesLoading(false);
     }
   }, [currentUser, authLoading, fetchAddresses]);
+
+  useEffect(() => {
+    // Set the first address as selected by default, but only if no address is already selected.
+    if (addresses.length > 0 && !selectedAddress) {
+        setSelectedAddress(addresses[0].id);
+    }
+  }, [addresses, selectedAddress]);
 
 
   const formatPrice = (price: number) => {

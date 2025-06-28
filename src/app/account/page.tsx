@@ -152,7 +152,7 @@ export default function AccountPage() {
     setIsAddressesLoading(false);
   }, [supabase, toast]);
   
-  const fetchUserOrders = async (userId: string) => {
+  const fetchUserOrders = useCallback(async (userId: string) => {
     setIsOrdersLoading(true);
     const { data, error } = await getOrdersByUserId(userId);
 
@@ -162,7 +162,7 @@ export default function AccountPage() {
         setUserOrders(data || []);
     }
     setIsOrdersLoading(false);
-  };
+  }, [toast]);
 
 
   useEffect(() => {
@@ -175,7 +175,7 @@ export default function AccountPage() {
       fetchAddresses(currentUser.id);
       fetchUserOrders(currentUser.id);
     }
-  }, [currentUser, loading, router, fetchAddresses]);
+  }, [currentUser, loading, router, fetchAddresses, fetchUserOrders]);
   
   const handleSaveChanges = () => {
     // In a real app, you would call an API to update the user profile.
