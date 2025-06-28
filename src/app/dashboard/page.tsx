@@ -265,7 +265,7 @@ export default function DashboardPage() {
           </Popover>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {loading ? (
                 <>
                     <StatCardSkeleton />
@@ -296,7 +296,7 @@ export default function DashboardPage() {
                 </>
             )}
         </div>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+        <div className="grid grid-cols-1 lg:grid-cols-7 gap-4">
             <Card className="lg:col-span-4">
                 <CardHeader>
                     <CardTitle>Receita</CardTitle>

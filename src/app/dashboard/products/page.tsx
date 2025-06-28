@@ -377,7 +377,7 @@ export default function DashboardProductsPage() {
   };
   
   const FormBody = (
-    <div className="grid gap-4 py-4 max-h-[calc(100vh-150px)] overflow-y-auto px-1">
+    <div className="grid gap-4 py-4 max-h-[calc(100vh-220px)] overflow-y-auto px-6 pr-4">
       <div className="grid gap-2">
         <Label htmlFor="name">Nome</Label>
         <Input id="name" name="name" value={formState.name || ''} onChange={handleInputChange} required disabled={isSubmitting} />
@@ -714,16 +714,16 @@ export default function DashboardProductsPage() {
       
       {isMobile ? (
         <Dialog open={isSheetOpen} onOpenChange={setIsSheetOpen}>
-          <DialogContent className="sm:max-w-lg">
+          <DialogContent className="p-0">
+            <DialogHeader className="p-6 pb-4">
+              <DialogTitle>{editingProduct ? 'Editar Produto' : 'Adicionar Novo Produto'}</DialogTitle>
+              <DialogDescription>
+                Preencha os detalhes do produto aqui. Clique em salvar quando terminar.
+              </DialogDescription>
+            </DialogHeader>
             <form onSubmit={handleFormSubmit}>
-              <DialogHeader>
-                <DialogTitle>{editingProduct ? 'Editar Produto' : 'Adicionar Novo Produto'}</DialogTitle>
-                <DialogDescription>
-                  Preencha os detalhes do produto aqui. Clique em salvar quando terminar.
-                </DialogDescription>
-              </DialogHeader>
               {FormBody}
-              <DialogFooter>
+              <DialogFooter className="p-6 pt-4 border-t">
                 <DialogClose asChild>
                   <Button type="button" variant="outline" disabled={isSubmitting}>Cancelar</Button>
                 </DialogClose>
@@ -737,16 +737,16 @@ export default function DashboardProductsPage() {
         </Dialog>
       ) : (
         <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
-          <SheetContent className="sm:max-w-lg">
+          <SheetContent className="sm:max-w-lg p-0">
+             <SheetHeader className="p-6 pb-4">
+              <SheetTitle>{editingProduct ? 'Editar Produto' : 'Adicionar Novo Produto'}</SheetTitle>
+              <SheetDescription>
+                Preencha os detalhes do produto aqui. Clique em salvar quando terminar.
+              </SheetDescription>
+            </SheetHeader>
             <form onSubmit={handleFormSubmit}>
-              <SheetHeader>
-                <SheetTitle>{editingProduct ? 'Editar Produto' : 'Adicionar Novo Produto'}</SheetTitle>
-                <SheetDescription>
-                  Preencha os detalhes do produto aqui. Clique em salvar quando terminar.
-                </SheetDescription>
-              </SheetHeader>
               {FormBody}
-              <SheetFooter>
+              <SheetFooter className="p-6 pt-4 border-t">
                 <SheetClose asChild>
                   <Button type="button" variant="outline" disabled={isSubmitting}>Cancelar</Button>
                 </SheetClose>
