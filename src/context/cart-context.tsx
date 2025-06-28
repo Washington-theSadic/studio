@@ -3,6 +3,7 @@
 import type { Product } from '@/lib/products';
 import { useToast } from "@/hooks/use-toast";
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import { useAuth } from './auth-context';
 
 export type CartItem = {
   product: Product;
@@ -24,17 +25,57 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 export const CartProvider = ({ children }: { children: ReactNode }) => {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const { toast } = useToast();
+  const { currentUser } = useAuth();
+  const [cartKey, setCartKey] = useState<string | null>(null);
 
+  // Effect to determine the cart key (client-side only)
   useEffect(() => {
-    const storedCart = localStorage.getItem('cart');
-    if (storedCart) {
-      setCartItems(JSON.parse(storedCart));
+    let key: string;
+    if (currentUser) {
+      key = `cart_${currentUser.id}`;
+    } else {
+      let anonymousId = localStorage.getItem('cart_anonymous_id');
+      if (!anonymousId) {
+        anonymousId = crypto.randomUUID();
+        localStorage.setItem('cart_anonymous_id', anonymousId);
+      }
+      key = `cart_anonymous_${anonymousId}`;
     }
-  }, []);
+    setCartKey(key);
+  }, [currentUser]);
 
+  // Effect to load cart from localStorage once key is set
   useEffect(() => {
-    localStorage.setItem('cart', JSON.stringify(cartItems));
-  }, [cartItems]);
+    if (cartKey) {
+      const storedCart = localStorage.getItem(cartKey);
+      if (storedCart) {
+        try {
+          const parsedCart = JSON.parse(storedCart);
+          if (Array.isArray(parsedCart)) {
+            setCartItems(parsedCart);
+          }
+        } catch (e) {
+          console.error("Failed to parse cart from localStorage", e);
+          setCartItems([]); // Reset to empty on parse error
+        }
+      } else {
+        setCartItems([]); // No cart found for this key
+      }
+    }
+  }, [cartKey]);
+
+  // Effect to save cart to localStorage when it changes
+  useEffect(() => {
+    // Only run this effect on the client and when cartKey is determined
+    if (cartKey) {
+      if (cartItems.length > 0) {
+        localStorage.setItem(cartKey, JSON.stringify(cartItems));
+      } else {
+        localStorage.removeItem(cartKey);
+      }
+    }
+  }, [cartItems, cartKey]);
+
 
   const addToCart = (product: Product, quantity: number = 1, showToast: boolean = true) => {
     setCartItems(prevItems => {
