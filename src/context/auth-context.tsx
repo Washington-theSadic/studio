@@ -107,25 +107,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return { error: new Error("Nenhum arquivo válido foi selecionado.") };
     }
 
-    // A Causa do Erro: Política de Segurança de Nível de Linha (RLS)
-    // O erro 403 "violates row-level security policy" indica que o Supabase está
-    // bloqueando o upload porque ele não cumpre as regras de segurança.
-    // Uma política comum e segura é permitir que os usuários façam upload apenas
-    // para uma pasta com o nome de seu próprio ID de usuário, dentro de uma pasta 'avatars'.
     const fileExtension = file.name.split('.').pop();
     const fileName = `${crypto.randomUUID()}.${fileExtension}`;
-    const filePath = `avatars/${currentUser.id}/${fileName}`; // Caminho: 'avatars/USER_ID/unique_file_name.jpg'
+    // This path structure is most likely to comply with standard RLS policies
+    // that allow a user to write to their own folder inside a public directory.
+    const filePath = `public/${currentUser.id}/${fileName}`;
 
     const { data: uploadData, error: uploadError } = await supabase.storage
-      .from('public-images')
-      .upload(filePath, file);
+      .from('public-images') // This is the bucket name
+      .upload(filePath, file); // This is the path inside the bucket
 
     if (uploadError) {
-      // Log do erro completo para depuração
+      // Log the full error object for better debugging
       console.error('Supabase Storage upload error:', JSON.stringify(uploadError, null, 2));
       const message =
         (uploadError as any).message ||
-        'Falha no upload da imagem. Verifique se as permissões de armazenamento (RLS) estão configuradas corretamente para permitir uploads na pasta de avatares do usuário.';
+        'Falha no upload da imagem. Verifique se as permissões de armazenamento (RLS) estão configuradas para permitir que usuários façam upload em suas pastas pessoais (ex: public/USER_ID/).';
       return { error: new Error(message) };
     }
 
@@ -150,8 +147,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       console.error('Supabase auth update user error:', JSON.stringify(updateError, null, 2));
       return { error: new Error(updateError.message || 'Falha ao atualizar o perfil do usuário.') };
     }
-
-    // Update local state immediately with the confirmed URL
+    
     setCurrentUser((prevUser) =>
       prevUser ? { ...prevUser, avatar_url: publicUrl } : null
     );
