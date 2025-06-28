@@ -107,21 +107,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return { error: new Error("Nenhum arquivo válido foi selecionado.") };
     }
 
-    // New path logic: save to root with a unique name, just like product images.
-    // This avoids folder-specific RLS policies which are the likely cause of the error.
+    // A Causa do Erro: Política de Segurança de Nível de Linha (RLS)
+    // O erro 403 "violates row-level security policy" indica que o Supabase está
+    // bloqueando o upload porque ele não cumpre as regras de segurança.
+    // Uma política comum e segura é permitir que os usuários façam upload apenas
+    // para uma pasta com o nome de seu próprio ID de usuário.
+    // A correção é garantir que o caminho do arquivo siga esse padrão.
     const fileExtension = file.name.split('.').pop();
-    const fileName = `avatar_${currentUser.id}_${crypto.randomUUID()}.${fileExtension}`;
-    
+    const fileName = `${crypto.randomUUID()}.${fileExtension}`;
+    const filePath = `${currentUser.id}/${fileName}`; // Caminho: 'USER_ID/unique_file_name.jpg'
+
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from('public-images')
-      .upload(fileName, file); // Use fileName directly, uploads to root.
+      .upload(filePath, file);
 
     if (uploadError) {
-      // Log the full error object for better debugging
+      // Log do erro completo para depuração
       console.error('Supabase Storage upload error:', JSON.stringify(uploadError, null, 2));
       const message =
         (uploadError as any).message ||
-        'Falha no upload da imagem. Verifique se as permissões de armazenamento (RLS) estão configuradas corretamente.';
+        'Falha no upload da imagem. Verifique se as permissões de armazenamento (RLS) estão configuradas corretamente para permitir uploads na pasta do usuário.';
       return { error: new Error(message) };
     }
 
@@ -131,7 +136,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     const { data: urlData } = supabase.storage
       .from('public-images')
-      .getPublicUrl(uploadData.path); // Use the path returned by Supabase
+      .getPublicUrl(uploadData.path); 
 
     if (!urlData?.publicUrl) {
       return { error: new Error('Não foi possível obter a URL pública da imagem após o upload.') };
