@@ -100,57 +100,67 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const updateAvatar = async (file: File): Promise<{ error: Error | null }> => {
     if (!currentUser) {
-        return { error: new Error("Usuário não autenticado.") };
+      return { error: new Error('Usuário não autenticado.') };
     }
 
-    // Step 1: Upload the file
     const fileExt = file.name.split('.').pop();
-    const fileName = `${Date.now()}.${fileExt}`;
-    const filePath = `avatars/${currentUser.id}/${fileName}`;
+    // A unique file name to avoid collisions in the bucket root.
+    // This mirrors the working logic for product image uploads.
+    const fileName = `avatar_${currentUser.id}_${Date.now()}.${fileExt}`;
 
+    // Upload to the root of the bucket to avoid potential RLS issues on subfolders.
     const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('public-images')
-        .upload(filePath, file, { upsert: true });
+      .from('public-images')
+      .upload(fileName, file);
 
     if (uploadError) {
-        console.error('Supabase Storage upload error:', uploadError);
-        return { error: new Error(uploadError.message || 'Falha no upload da imagem.') };
-    }
-    if (!uploadData?.path) {
-        console.error('Upload succeeded but no path returned.');
-        return { error: new Error("Falha no upload da imagem, nenhum caminho retornado.") };
+      console.error('Supabase Storage upload error:', uploadError);
+      const message =
+        (uploadError as any).message ||
+        'Falha no upload da imagem. Verifique as permissões de armazenamento (RLS).';
+      return { error: new Error(message) };
     }
 
-    // Step 2: Get the public URL
+    // The path is needed to get the public URL.
+    const filePath = uploadData.path;
     const { data: urlData } = supabase.storage
-        .from('public-images')
-        .getPublicUrl(uploadData.path);
-    
+      .from('public-images')
+      .getPublicUrl(filePath);
+
     const publicUrl = urlData?.publicUrl;
     if (!publicUrl) {
-        console.error('Could not get public URL for path:', uploadData.path);
-        return { error: new Error("Não foi possível obter a URL pública da imagem.") };
+      return {
+        error: new Error(
+          'Não foi possível obter a URL pública da imagem após o upload.'
+        ),
+      };
     }
 
-    // Step 3: Update the user metadata
-    const { data: updatedUserData, error: updateError } = await supabase.auth.updateUser({
-        data: { avatar_url: publicUrl }
+    const { error: updateError } = await supabase.auth.updateUser({
+      data: { avatar_url: publicUrl },
     });
 
     if (updateError) {
-        console.error('Supabase auth update user error:', updateError);
-        return { error: new Error(updateError.message || 'Falha ao atualizar o perfil do usuário.') };
+      console.error('Supabase auth update user error:', updateError);
+      return {
+        error: new Error(
+          updateError.message || 'Falha ao atualizar o perfil do usuário.'
+        ),
+      };
     }
 
-    // Step 4: Update the local user state
-    setCurrentUser(prevUser => prevUser ? {
-        ...prevUser,
-        avatar_url: publicUrl,
-    } : null);
+    // Update the local user state with the correct new URL.
+    setCurrentUser((prevUser) =>
+      prevUser
+        ? {
+            ...prevUser,
+            avatar_url: publicUrl,
+          }
+        : null
+    );
 
     return { error: null };
   };
-
 
   const value = {
     currentUser,
