@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Smartphone, Pill, Headset, ArrowRight, Tags } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@/lib/supabase/server';
 import type { Product } from '@/lib/products';
 import ProductCarousel from '@/components/product-carousel';
 
@@ -13,6 +13,8 @@ const categories = [
 ];
 
 export default async function Home() {
+  const supabase = createClient();
+  
   const { data: featuredProductsData } = await supabase
     .from('products')
     .select('*')

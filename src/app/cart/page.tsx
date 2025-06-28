@@ -11,9 +11,9 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription }
 import { Trash2, ShoppingBag, Plus, Minus, Loader2, MapPin, PlusCircle, Wallet, QrCode, CreditCard } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { createCheckoutSession } from '../actions/stripe';
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@/lib/supabase/client';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog';
@@ -33,6 +33,7 @@ type Address = {
 
 const AddressForm = ({ onAddressAdded, userId }: { onAddressAdded: () => void, userId: string }) => {
     const { toast } = useToast();
+    const [supabase] = useState(() => createClient());
     const [newAddress, setNewAddress] = useState({ street: '', city: '', state: '', zip: '' });
     const [isSubmittingAddress, setIsSubmittingAddress] = useState(false);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -105,6 +106,7 @@ export default function CartPage() {
   const { currentUser, loading: authLoading } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
+  const [supabase] = useState(() => createClient());
   
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
@@ -113,7 +115,7 @@ export default function CartPage() {
   const [selectedAddress, setSelectedAddress] = useState<string | undefined>(undefined);
   const [isAddressesLoading, setIsAddressesLoading] = useState(true);
 
-  const fetchAddresses = async (userId: string) => {
+  const fetchAddresses = useCallback(async (userId: string) => {
     setIsAddressesLoading(true);
     const { data, error } = await supabase
         .from('addresses')
@@ -129,7 +131,7 @@ export default function CartPage() {
         }
     }
     setIsAddressesLoading(false);
-  };
+  }, [supabase, toast, selectedAddress]);
   
   useEffect(() => {
     if (currentUser && !authLoading) {
@@ -138,7 +140,7 @@ export default function CartPage() {
       // If user is not logged in, stop loading
       setIsAddressesLoading(false);
     }
-  }, [currentUser, authLoading]);
+  }, [currentUser, authLoading, fetchAddresses]);
 
 
   const formatPrice = (price: number) => {

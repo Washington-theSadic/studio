@@ -4,7 +4,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter, notFound } from 'next/navigation';
 import Image from 'next/image';
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@/lib/supabase/client';
 import type { Product } from '@/lib/products';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -52,6 +52,7 @@ export default function ProductDetailPage() {
   const router = useRouter();
   const { id } = params;
   const { addToCart } = useCart();
+  const [supabase] = useState(() => createClient());
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   
@@ -78,7 +79,7 @@ export default function ProductDetailPage() {
     };
 
     fetchProduct();
-  }, [id]);
+  }, [id, supabase]);
   
   useEffect(() => {
     if (!api) {

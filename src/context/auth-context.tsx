@@ -3,8 +3,8 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
-import type { AuthError, User as SupabaseUser } from '@supabase/supabase-js';
+import { createClient } from '@/lib/supabase/client';
+import type { AuthError, User as SupabaseUser, SupabaseClient } from '@supabase/supabase-js';
 
 type User = {
   id: string;
@@ -28,6 +28,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 const ADMIN_EMAIL = 'jcimports@gmail.com';
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
+  const [supabase] = useState(() => createClient());
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
@@ -48,12 +49,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setCurrentUser(null);
       }
       setLoading(false);
+      router.refresh();
     });
 
     return () => {
       subscription.unsubscribe();
     };
-  }, []);
+  }, [router, supabase]);
 
   const login = async (email: string, pass: string) => {
     setLoading(true);

@@ -6,7 +6,7 @@ import Image from "next/image"
 import { PlusCircle, MoreHorizontal, X, Loader2, Copy, Trash2, Archive, ArchiveRestore, ChevronLeft, ChevronRight } from "lucide-react"
 
 import type { Product } from "@/lib/products"
-import { supabase, supabaseUrl } from "@/lib/supabase"
+import { createClient } from "@/lib/supabase/client"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -65,6 +65,7 @@ const PRODUCTS_PER_PAGE = 15;
 const productCategories: (Product['category'] | 'all')[] = ['all', 'Apple', 'Android', 'Minoxidil', 'Acessórios'];
 
 export default function DashboardProductsPage() {
+  const [supabase] = React.useState(() => createClient());
   const [products, setProducts] = React.useState<Product[]>([])
   const [loading, setLoading] = React.useState(true)
   const [isSheetOpen, setIsSheetOpen] = React.useState(false)
@@ -89,7 +90,7 @@ export default function DashboardProductsPage() {
       setProducts(data || []);
     }
     setLoading(false);
-  }, [toast]);
+  }, [supabase, toast]);
 
   React.useEffect(() => {
     fetchProducts();
@@ -176,6 +177,7 @@ export default function DashboardProductsPage() {
     try {
         if (productToDelete.images && productToDelete.images.length > 0) {
             const bucketName = 'public-images';
+            const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
             const filePaths = productToDelete.images
                 .map(url => {
                     if (!url || !url.startsWith(supabaseUrl)) return null;
@@ -308,6 +310,7 @@ export default function DashboardProductsPage() {
 
     try {
         const allImageUrls = productsToDelete.flatMap(p => p.images || []);
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
         if (allImageUrls.length > 0) {
             const bucketName = 'public-images';
             const filePaths = allImageUrls

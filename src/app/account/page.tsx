@@ -1,11 +1,11 @@
 
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/context/auth-context';
 import { useRouter } from 'next/navigation';
 import { User, MapPin, Package, KeyRound, Camera, Loader2, PlusCircle } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@/lib/supabase/client';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -56,6 +56,7 @@ const PageSection = ({ icon, title, description, children }: { icon: React.React
 
 const AddressForm = ({ onAddressAdded, userId }: { onAddressAdded: () => void, userId: string }) => {
     const { toast } = useToast();
+    const [supabase] = useState(() => createClient());
     const [newAddress, setNewAddress] = useState({ street: '', city: '', state: '', zip: '' });
     const [isSubmittingAddress, setIsSubmittingAddress] = useState(false);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -126,6 +127,7 @@ export default function AccountPage() {
   const { currentUser, loading, logout, updateAvatar } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
+  const [supabase] = useState(() => createClient());
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -135,8 +137,7 @@ export default function AccountPage() {
   const [userOrders, setUserOrders] = useState<Order[]>([]);
   const [isOrdersLoading, setIsOrdersLoading] = useState(true);
 
-
-  const fetchAddresses = async (userId: string) => {
+  const fetchAddresses = useCallback(async (userId: string) => {
     setIsAddressesLoading(true);
     const { data, error } = await supabase
         .from('addresses')
@@ -149,7 +150,7 @@ export default function AccountPage() {
         setAddresses(data || []);
     }
     setIsAddressesLoading(false);
-  };
+  }, [supabase, toast]);
   
   const fetchUserOrders = async (userId: string) => {
     setIsOrdersLoading(true);
@@ -174,7 +175,7 @@ export default function AccountPage() {
       fetchAddresses(currentUser.id);
       fetchUserOrders(currentUser.id);
     }
-  }, [currentUser, loading, router]);
+  }, [currentUser, loading, router, fetchAddresses]);
   
   const handleSaveChanges = () => {
     // In a real app, you would call an API to update the user profile.

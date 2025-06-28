@@ -1,6 +1,6 @@
 
 import { Suspense } from 'react';
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@/lib/supabase/server';
 import type { Product } from '@/lib/products';
 import ProductGrid from '@/components/product-grid';
 
@@ -9,6 +9,7 @@ function ProductGridFallback() {
 }
 
 export default async function ProductsPage() {
+  const supabase = createClient();
   const { data } = await supabase
     .from('products')
     .select('*')
