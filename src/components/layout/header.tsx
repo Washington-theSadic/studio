@@ -3,7 +3,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { ShoppingCart, Menu, User, LogOut, LifeBuoy, Home, Package, LayoutDashboard, UserPlus, LogIn } from 'lucide-react';
+import { ShoppingCart, Menu, User, LogOut, LifeBuoy, Home, Package, LayoutDashboard, UserPlus, LogIn, ClipboardList } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useCart } from '@/context/cart-context';
 import { useAuth } from '@/context/auth-context';
@@ -281,6 +281,10 @@ export default function Header() {
                                 <MobileNavLink href="/account">
                                     <User className="h-5 w-5" />
                                     Minha Conta
+                                </MobileNavLink>
+                                <MobileNavLink href="/account">
+                                    <ClipboardList className="h-5 w-5" />
+                                    Meus Pedidos
                                 </MobileNavLink>
                                  <button
                                     onClick={() => {
