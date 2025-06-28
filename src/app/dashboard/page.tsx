@@ -12,30 +12,28 @@ import type { Order } from "@/lib/orders"
 import { Skeleton } from "@/components/ui/skeleton"
 import { getOrders } from "@/app/actions/orders"
 import { useToast } from "@/hooks/use-toast"
-
-const chartData = [
-  { month: "Janeiro", desktop: 186, mobile: 80 },
-  { month: "Fevereiro", desktop: 305, mobile: 200 },
-  { month: "Março", desktop: 237, mobile: 120 },
-  { month: "Abril", desktop: 73, mobile: 190 },
-  { month: "Maio", desktop: 209, mobile: 130 },
-  { month: "Junho", desktop: 214, mobile: 140 },
-]
+import { format, subMonths, startOfMonth, endOfMonth } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
 const chartConfig = {
-  desktop: {
-    label: "Desktop",
+  total: {
+    label: "Receita",
     color: "hsl(var(--primary))",
-  },
-  mobile: {
-    label: "Mobile",
-    color: "hsl(var(--brand))",
   },
 } satisfies ChartConfig
 
 const formatPrice = (price: number) => {
     return price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 };
+
+const formatYAxis = (tick: any) => {
+  const value = Number(tick);
+  if (value >= 1000) {
+    return `R$${(value / 1000).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}k`;
+  }
+  return formatPrice(value);
+};
+
 
 const timeSince = (dateString: string) => {
     const date = new Date(dateString);
@@ -112,6 +110,34 @@ export default function DashboardPage() {
     };
     fetchOrders();
   }, [toast]);
+  
+  const chartData = React.useMemo(() => {
+    if (orders.length === 0) return [];
+    
+    const monthlyRevenue: { name: string; total: number }[] = [];
+    const now = new Date();
+
+    for (let i = 5; i >= 0; i--) {
+      const targetDate = subMonths(now, i);
+      const monthStart = startOfMonth(targetDate);
+      const monthEnd = endOfMonth(targetDate);
+
+      const filteredOrders = orders.filter(order => {
+        const orderDate = new Date(order.created_at);
+        return orderDate >= monthStart && orderDate <= monthEnd;
+      });
+
+      const total = filteredOrders.reduce((sum, order) => sum + order.total_price, 0);
+      
+      const monthName = format(targetDate, 'MMM', { locale: ptBR });
+      monthlyRevenue.push({
+        name: monthName.charAt(0).toUpperCase() + monthName.slice(1).replace('.', ''),
+        total: total,
+      });
+    }
+
+    return monthlyRevenue;
+  }, [orders]);
 
   const recentOrders = React.useMemo(() => orders.slice(0, 5), [orders]);
   const totalRevenue = orders.reduce((sum, order) => sum + order.total_price, 0);
@@ -177,16 +203,27 @@ export default function DashboardPage() {
                       <BarChart data={chartData} accessibilityLayer>
                         <CartesianGrid vertical={false} />
                         <XAxis
-                          dataKey="month"
+                          dataKey="name"
                           tickLine={false}
                           tickMargin={10}
                           axisLine={false}
                           tickFormatter={(value) => value.slice(0, 3)}
                         />
-                        <YAxis />
-                        <ChartTooltip content={<ChartTooltipContent />} />
-                        <Bar dataKey="desktop" fill="var(--color-desktop)" radius={4} />
-                        <Bar dataKey="mobile" fill="var(--color-mobile)" radius={4} />
+                        <YAxis
+                          tickFormatter={formatYAxis}
+                        />
+                        <ChartTooltip
+                          cursor={false}
+                          content={<ChartTooltipContent
+                            labelFormatter={(label, payload) => {
+                              if (payload && payload.length > 0) {
+                                return formatPrice(payload[0].value as number);
+                              }
+                              return label;
+                            }}
+                          />}
+                        />
+                        <Bar dataKey="total" fill="var(--color-total)" radius={4} />
                       </BarChart>
                     </ChartContainer>
                 </CardContent>
@@ -251,6 +288,8 @@ export default function DashboardPage() {
         </div>
     </div>
   )
+
+    
 
     
 
