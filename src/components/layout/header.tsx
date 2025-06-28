@@ -130,7 +130,7 @@ export default function Header() {
             <Button variant="ghost" className="flex items-center gap-2">
               <Avatar className="h-7 w-7">
                   <AvatarImage src={currentUser.avatar_url || undefined} alt={currentUser.name} />
-                  <AvatarFallback>{getInitials(currentUser.name)}</AvatarFallback>
+                  <AvatarFallback>{isAdmin ? 'ADM' : getInitials(currentUser.name)}</AvatarFallback>
               </Avatar>
               <span className="hidden md:inline">{currentUser.name.split(' ')[0]}</span>
             </Button>
@@ -261,7 +261,7 @@ export default function Header() {
                                 <Link href="/account" onClick={handleLinkClick} className="flex items-center gap-4 group">
                                     <Avatar className="h-14 w-14">
                                         <AvatarImage src={currentUser.avatar_url || undefined} alt={currentUser.name} />
-                                        <AvatarFallback>{getInitials(currentUser.name)}</AvatarFallback>
+                                        <AvatarFallback>{isAdmin ? 'ADM' : getInitials(currentUser.name)}</AvatarFallback>
                                     </Avatar>
                                     <div className="min-w-0">
                                         <p className="font-semibold text-lg text-foreground truncate group-hover:text-brand">{currentUser.name}</p>
@@ -291,7 +291,7 @@ export default function Header() {
                                     Meu Perfil
                                 </MobileNavLink>
                                 <MobileNavLink href="/account/orders">
-                                    <Package className="h-5 w-5" />
+                                    <Package className="mr-2 h-4 w-4" />
                                     Meus Pedidos
                                 </MobileNavLink>
                                  <button
