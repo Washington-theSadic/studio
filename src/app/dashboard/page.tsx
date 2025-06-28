@@ -3,8 +3,9 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { CreditCard, DollarSign, Bell, Loader2 } from "lucide-react"
+import { CreditCard, DollarSign, Bell, Loader2, Calendar as CalendarIcon } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartConfig } from "@/components/ui/chart"
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts"
@@ -12,8 +13,22 @@ import type { Order } from "@/lib/orders"
 import { Skeleton } from "@/components/ui/skeleton"
 import { getOrders } from "@/app/actions/orders"
 import { useToast } from "@/hooks/use-toast"
-import { format, subMonths, startOfMonth, endOfMonth } from 'date-fns';
+import { 
+  format, 
+  subDays,
+  isAfter,
+  isBefore,
+  startOfDay,
+  endOfDay,
+  eachDayOfInterval,
+  eachMonthOfInterval,
+  differenceInDays,
+} from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { DateRange } from "react-day-picker"
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"
+import { Calendar } from "@/components/ui/calendar"
+import { cn } from "@/lib/utils"
 
 const chartConfig = {
   total: {
@@ -94,6 +109,11 @@ export default function DashboardPage() {
   const [loading, setLoading] = React.useState(true);
   const { toast } = useToast();
   
+  const [date, setDate] = React.useState<DateRange | undefined>({
+    from: subDays(new Date(), 29),
+    to: new Date(),
+  });
+
   const [timeAgo, setTimeAgo] = React.useState<Record<string, string>>({});
 
   React.useEffect(() => {
@@ -111,37 +131,71 @@ export default function DashboardPage() {
     fetchOrders();
   }, [toast]);
   
-  const chartData = React.useMemo(() => {
-    if (orders.length === 0) return [];
+  const filteredOrders = React.useMemo(() => {
+    if (!date?.from || !orders) return [];
     
-    const monthlyRevenue: { name: string; total: number }[] = [];
-    const now = new Date();
+    const fromDate = startOfDay(date.from);
+    const toDate = date.to ? endOfDay(date.to) : endOfDay(date.from);
 
-    for (let i = 5; i >= 0; i--) {
-      const targetDate = subMonths(now, i);
-      const monthStart = startOfMonth(targetDate);
-      const monthEnd = endOfMonth(targetDate);
+    return orders.filter(order => {
+      const orderDate = new Date(order.created_at);
+      return isAfter(orderDate, fromDate) && isBefore(orderDate, toDate);
+    });
+  }, [orders, date]);
 
-      const filteredOrders = orders.filter(order => {
-        const orderDate = new Date(order.created_at);
-        return orderDate >= monthStart && orderDate <= monthEnd;
+  const totalRevenue = filteredOrders.reduce((sum, order) => sum + order.total_price, 0);
+  const totalSales = filteredOrders.length;
+
+  const chartData = React.useMemo(() => {
+    if (filteredOrders.length === 0 || !date?.from) return [];
+
+    const from = startOfDay(date.from);
+    const to = date.to ? endOfDay(date.to) : endOfDay(date.from);
+    const daysInRange = differenceInDays(to, from);
+
+    if (daysInRange < 0) return [];
+
+    if (daysInRange <= 31) {
+      // Group by day
+      const dailyRevenue = new Map<string, number>();
+      const interval = eachDayOfInterval({ start: from, end: to });
+
+      interval.forEach(day => {
+        const formattedDate = format(day, 'dd/MM', { locale: ptBR });
+        dailyRevenue.set(formattedDate, 0);
       });
 
-      const total = filteredOrders.reduce((sum, order) => sum + order.total_price, 0);
+      filteredOrders.forEach(order => {
+        const orderDate = format(new Date(order.created_at), 'dd/MM', { locale: ptBR });
+        if (dailyRevenue.has(orderDate)) {
+          dailyRevenue.set(orderDate, (dailyRevenue.get(orderDate) || 0) + order.total_price);
+        }
+      });
       
-      const monthName = format(targetDate, 'MMM', { locale: ptBR });
-      monthlyRevenue.push({
-        name: monthName.charAt(0).toUpperCase() + monthName.slice(1).replace('.', ''),
-        total: total,
-      });
-    }
+      return Array.from(dailyRevenue.entries()).map(([name, total]) => ({ name, total }));
+    } else {
+      // Group by month
+      const monthlyRevenue = new Map<string, number>();
+      const interval = eachMonthOfInterval({ start: from, end: to });
 
-    return monthlyRevenue;
-  }, [orders]);
+      interval.forEach(month => {
+        const formattedMonth = format(month, 'MMM/yy', { locale: ptBR });
+        monthlyRevenue.set(formattedMonth, 0);
+      });
+
+      filteredOrders.forEach(order => {
+        const orderMonth = format(new Date(order.created_at), 'MMM/yy', { locale: ptBR });
+        if (monthlyRevenue.has(orderMonth)) {
+          monthlyRevenue.set(orderMonth, (monthlyRevenue.get(orderMonth) || 0) + order.total_price);
+        }
+      });
+
+      return Array.from(monthlyRevenue.entries()).map(([name, total]) => ({ name, total: total }));
+    }
+  }, [filteredOrders, date]);
+
 
   const recentOrders = React.useMemo(() => orders.slice(0, 5), [orders]);
-  const totalRevenue = orders.reduce((sum, order) => sum + order.total_price, 0);
-  const totalSales = orders.length;
 
   React.useEffect(() => {
     if (recentOrders.length === 0) return;
@@ -162,6 +216,47 @@ export default function DashboardPage() {
   
   return (
     <div className="flex flex-col gap-8">
+        <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+          <h1 className="text-2xl font-bold font-heading">Visão Geral</h1>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                id="date"
+                variant={"outline"}
+                className={cn(
+                  "w-full sm:w-[300px] justify-start text-left font-normal",
+                  !date && "text-muted-foreground"
+                )}
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {date?.from ? (
+                  date.to ? (
+                    <>
+                      {format(date.from, "d 'de' LLL, y", { locale: ptBR })} -{" "}
+                      {format(date.to, "d 'de' LLL, y", { locale: ptBR })}
+                    </>
+                  ) : (
+                    format(date.from, "d 'de' LLL, y", { locale: ptBR })
+                  )
+                ) : (
+                  <span>Escolha um período</span>
+                )}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="end">
+              <Calendar
+                initialFocus
+                mode="range"
+                defaultMonth={date?.from}
+                selected={date}
+                onSelect={setDate}
+                numberOfMonths={2}
+                locale={ptBR}
+              />
+            </PopoverContent>
+          </Popover>
+        </div>
+
         <div className="grid gap-4 md:grid-cols-2">
             {loading ? (
                 <>
@@ -177,7 +272,7 @@ export default function DashboardPage() {
                         </CardHeader>
                         <CardContent>
                             <div className="text-2xl font-bold">{formatPrice(totalRevenue)}</div>
-                            <p className="text-xs text-muted-foreground">+20.1% do último mês</p>
+                            <p className="text-xs text-muted-foreground">No período selecionado</p>
                         </CardContent>
                     </Card>
                     <Card>
@@ -187,7 +282,7 @@ export default function DashboardPage() {
                         </CardHeader>
                         <CardContent>
                             <div className="text-2xl font-bold">+{totalSales}</div>
-                            <p className="text-xs text-muted-foreground">+19% do último mês</p>
+                            <p className="text-xs text-muted-foreground">No período selecionado</p>
                         </CardContent>
                     </Card>
                 </>
@@ -196,7 +291,10 @@ export default function DashboardPage() {
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
             <Card className="lg:col-span-4">
                 <CardHeader>
-                    <CardTitle>Visão Geral</CardTitle>
+                    <CardTitle>Receita</CardTitle>
+                    <CardDescription>
+                      Sua receita total para o período selecionado.
+                    </CardDescription>
                 </CardHeader>
                 <CardContent className="pl-2">
                    <ChartContainer config={chartConfig} className="h-[350px] w-full">
@@ -207,7 +305,6 @@ export default function DashboardPage() {
                           tickLine={false}
                           tickMargin={10}
                           axisLine={false}
-                          tickFormatter={(value) => value.slice(0, 3)}
                         />
                         <YAxis
                           tickFormatter={formatYAxis}
@@ -215,12 +312,7 @@ export default function DashboardPage() {
                         <ChartTooltip
                           cursor={false}
                           content={<ChartTooltipContent
-                            labelFormatter={(label, payload) => {
-                              if (payload && payload.length > 0) {
-                                return formatPrice(payload[0].value as number);
-                              }
-                              return label;
-                            }}
+                            formatter={(value) => formatPrice(value as number)}
                           />}
                         />
                         <Bar dataKey="total" fill="var(--color-total)" radius={4} />
@@ -235,7 +327,7 @@ export default function DashboardPage() {
                             <Bell className="h-5 w-5" />
                             Notificações
                         </CardTitle>
-                        <CardDescription>Últimas atividades na sua loja.</CardDescription>
+                        <CardDescription>Últimas atividades na sua loja (não afetado pelo filtro de data).</CardDescription>
                     </CardHeader>
                     <CardContent className="grid gap-6">
                         {loading ? <Loader2 className="h-6 w-6 animate-spin mx-auto text-muted-foreground" /> :
@@ -288,9 +380,4 @@ export default function DashboardPage() {
         </div>
     </div>
   )
-
-    
-
-    
-
-    
+}
