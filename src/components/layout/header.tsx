@@ -23,6 +23,15 @@ import { Skeleton } from '../ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { Separator } from '../ui/separator';
 
+const getInitials = (name: string) => {
+    if (!name) return '';
+    const names = name.trim().split(' ').filter(Boolean);
+    if (names.length > 1) {
+        return (names[0][0] + names[1][0]).toUpperCase();
+    }
+    return names[0] ? names[0][0].toUpperCase() : '';
+};
+
 const DesktopNavLinks = ({ isAdmin }: { isAdmin: boolean }) => {
     const pathname = usePathname();
     const links = [
@@ -112,8 +121,8 @@ export default function Header() {
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="flex items-center gap-2">
               <Avatar className="h-7 w-7">
-                  <AvatarImage src={currentUser.avatar_url || `https://i.pravatar.cc/150?u=${currentUser.id}`} alt={currentUser.name} data-ai-hint="avatar person" />
-                  <AvatarFallback>{currentUser.name.substring(0, 1)}</AvatarFallback>
+                  <AvatarImage src={currentUser.avatar_url || undefined} alt={currentUser.name} />
+                  <AvatarFallback>{getInitials(currentUser.name)}</AvatarFallback>
               </Avatar>
               <span className="hidden md:inline">{currentUser.name.split(' ')[0]}</span>
             </Button>
@@ -235,8 +244,8 @@ export default function Header() {
                             <div className="p-4 bg-muted/20 border-b">
                                 <Link href="/account" onClick={handleLinkClick} className="flex items-center gap-4 group">
                                     <Avatar className="h-14 w-14">
-                                        <AvatarImage src={currentUser.avatar_url || `https://i.pravatar.cc/150?u=${currentUser.id}`} alt={currentUser.name} data-ai-hint="avatar person" />
-                                        <AvatarFallback>{currentUser.name.substring(0, 2).toUpperCase()}</AvatarFallback>
+                                        <AvatarImage src={currentUser.avatar_url || undefined} alt={currentUser.name} />
+                                        <AvatarFallback>{getInitials(currentUser.name)}</AvatarFallback>
                                     </Avatar>
                                     <div className="min-w-0">
                                         <p className="font-semibold text-lg text-foreground truncate group-hover:text-brand">{currentUser.name}</p>
@@ -326,4 +335,3 @@ export default function Header() {
     </header>
   );
 }
-

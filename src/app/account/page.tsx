@@ -234,6 +234,15 @@ export default function AccountPage() {
     const date = new Date(dateString);
     return date.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric', timeZone: 'UTC' });
   };
+  
+  const getInitials = (name: string) => {
+    if (!name) return '';
+    const names = name.trim().split(' ').filter(Boolean);
+    if (names.length > 1) {
+        return (names[0][0] + names[1][0]).toUpperCase();
+    }
+    return names[0] ? names[0][0].toUpperCase() : '';
+  };
 
 
   return (
@@ -246,8 +255,8 @@ export default function AccountPage() {
               </div>
           )}
           <Avatar className="h-24 w-24 border-4 border-primary">
-            <AvatarImage src={currentUser.avatar_url || `https://i.pravatar.cc/150?u=${currentUser.id}`} alt={currentUser.name} data-ai-hint="avatar person" />
-            <AvatarFallback>{currentUser.name.substring(0, 2).toUpperCase()}</AvatarFallback>
+            <AvatarImage src={currentUser.avatar_url || undefined} alt={currentUser.name} />
+            <AvatarFallback>{getInitials(currentUser.name)}</AvatarFallback>
           </Avatar>
            <Button variant="outline" size="icon" className="absolute bottom-0 right-0 rounded-full bg-background cursor-pointer" disabled={isUploading}>
                 <label htmlFor="avatar-upload" className={cn("cursor-pointer", isUploading && "cursor-not-allowed")}>

@@ -103,6 +103,14 @@ function StatCardSkeleton() {
     )
 }
 
+const getInitials = (name: string) => {
+    if (!name) return '';
+    const names = name.trim().split(' ').filter(Boolean);
+    if (names.length > 1) {
+        return (names[0][0] + names[1][0]).toUpperCase();
+    }
+    return names[0] ? names[0][0].toUpperCase() : '';
+};
 
 export default function DashboardPage() {
   const [orders, setOrders] = React.useState<Order[]>([]);
@@ -334,8 +342,7 @@ export default function DashboardPage() {
                         recentOrders.length > 0 ? recentOrders.map((order) => (
                            <div className="flex items-start gap-4" key={order.id}>
                                 <Avatar className="h-9 w-9 border flex-shrink-0">
-                                    <AvatarImage src={`https://i.pravatar.cc/40?u=${order.customer_email}`} data-ai-hint="avatar person" />
-                                    <AvatarFallback>{order.customer_name.substring(0, 2).toUpperCase()}</AvatarFallback>
+                                    <AvatarFallback>{getInitials(order.customer_name)}</AvatarFallback>
                                 </Avatar>
                                 <div className="grid gap-1">
                                     <p className="text-sm font-medium leading-none">
@@ -363,8 +370,7 @@ export default function DashboardPage() {
                             {recentOrders.map((order) => (
                                 <div key={order.id} className="flex items-center gap-4">
                                     <Avatar className="h-9 w-9">
-                                        <AvatarImage src={`https://i.pravatar.cc/40?u=${order.customer_email}`} alt={order.customer_name} data-ai-hint="avatar person" />
-                                        <AvatarFallback>{order.customer_name.substring(0,2).toUpperCase()}</AvatarFallback>
+                                        <AvatarFallback>{getInitials(order.customer_name)}</AvatarFallback>
                                     </Avatar>
                                     <div className="flex-grow">
                                         <p className="font-semibold">{order.customer_name}</p>

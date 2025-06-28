@@ -87,15 +87,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           }
         }
      });
-
-     if (data.user && !error) {
-        await supabase.auth.updateUser({
-            data: {
-                avatar_url: `https://i.pravatar.cc/150?u=${data.user.id}`
-            }
-        });
-     }
-
+     
      setLoading(false);
      return { error };
   };
