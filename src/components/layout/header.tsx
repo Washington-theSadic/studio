@@ -3,7 +3,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { ShoppingCart, Menu, User, LogOut, LifeBuoy, Home, Package, LayoutDashboard, UserPlus, LogIn, ClipboardList } from 'lucide-react';
+import { ShoppingCart, Menu, User, LogOut, LifeBuoy, Home, Package, LayoutDashboard, UserPlus, LogIn } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useCart } from '@/context/cart-context';
 import { useAuth } from '@/context/auth-context';
@@ -141,7 +141,13 @@ export default function Header() {
             <DropdownMenuItem asChild>
               <Link href="/account">
                 <User className="mr-2 h-4 w-4" />
-                <span>Minha Conta</span>
+                <span>Meu Perfil</span>
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href="/account/orders">
+                <Package className="mr-2 h-4 w-4" />
+                <span>Meus Pedidos</span>
               </Link>
             </DropdownMenuItem>
             <DropdownMenuItem onClick={logout}>
@@ -166,14 +172,16 @@ export default function Header() {
   };
 
   const MobileNavLink = ({ href, children }: { href: string; children: React.ReactNode }) => {
-    const isActive = pathname === href;
+    const isActive = pathname.startsWith(href) && href !== '/';
+    const isHomeActive = pathname === '/';
+
     return (
         <Link 
             href={href}
             onClick={handleLinkClick}
             className={cn(
                 "flex items-center gap-3 rounded-lg px-3 py-2.5 text-foreground/80 transition-all hover:bg-accent hover:text-accent-foreground text-base",
-                isActive && "bg-accent text-foreground font-semibold"
+                 (href === '/' && isHomeActive) || (href !== '/' && isActive) ? "bg-accent text-foreground font-semibold" : ""
             )}
         >
             {children}
@@ -280,10 +288,10 @@ export default function Header() {
                                 <Separator className="my-4" />
                                 <MobileNavLink href="/account">
                                     <User className="h-5 w-5" />
-                                    Minha Conta
+                                    Meu Perfil
                                 </MobileNavLink>
-                                <MobileNavLink href="/account">
-                                    <ClipboardList className="h-5 w-5" />
+                                <MobileNavLink href="/account/orders">
+                                    <Package className="h-5 w-5" />
                                     Meus Pedidos
                                 </MobileNavLink>
                                  <button

@@ -1,10 +1,10 @@
 
 'use client';
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/context/auth-context';
 import { useRouter } from 'next/navigation';
-import { User, MapPin, Package, KeyRound, Loader2, PlusCircle } from 'lucide-react';
+import { User, MapPin, KeyRound, Loader2, PlusCircle } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 
 import { Button } from '@/components/ui/button';
@@ -14,12 +14,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Order } from '@/lib/orders';
-import { Badge } from '@/components/ui/badge';
-import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog';
-import { getOrdersByUserId } from '../actions/orders';
 
 type Address = {
   id: string;
@@ -28,14 +24,6 @@ type Address = {
   city: string;
   state: string;
   zip: string;
-};
-
-const statusColors: Record<Order['status'], string> = {
-  Pendente: 'bg-yellow-500 text-black hover:bg-yellow-600',
-  Processando: 'bg-blue-500 text-white hover:bg-blue-600',
-  Enviado: 'bg-indigo-500 text-white hover:bg-indigo-600',
-  Entregue: 'bg-green-500 text-white hover:bg-green-600',
-  Cancelado: 'bg-destructive text-destructive-foreground hover:bg-destructive/90',
 };
 
 const PageSection = ({ icon, title, description, children }: { icon: React.ReactNode, title: string, description: string, children: React.ReactNode }) => (
@@ -133,8 +121,6 @@ export default function AccountPage() {
   const [email, setEmail] = useState('');
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [isAddressesLoading, setIsAddressesLoading] = useState(true);
-  const [userOrders, setUserOrders] = useState<Order[]>([]);
-  const [isOrdersLoading, setIsOrdersLoading] = useState(true);
 
   const fetchAddresses = useCallback(async (userId: string) => {
     setIsAddressesLoading(true);
@@ -150,19 +136,6 @@ export default function AccountPage() {
     }
     setIsAddressesLoading(false);
   }, [supabase, toast]);
-  
-  const fetchUserOrders = useCallback(async (userId: string) => {
-    setIsOrdersLoading(true);
-    const { data, error } = await getOrdersByUserId(userId);
-
-    if (error) {
-        toast({ title: "Erro ao buscar pedidos", description: error, variant: "destructive" });
-    } else {
-        setUserOrders(data || []);
-    }
-    setIsOrdersLoading(false);
-  }, [toast]);
-
 
   useEffect(() => {
     if (!loading && !currentUser) {
@@ -172,9 +145,8 @@ export default function AccountPage() {
       setName(currentUser.name);
       setEmail(currentUser.email);
       fetchAddresses(currentUser.id);
-      fetchUserOrders(currentUser.id);
     }
-  }, [currentUser, loading, router, fetchAddresses, fetchUserOrders]);
+  }, [currentUser, loading, router, fetchAddresses]);
   
   const handleSaveChanges = () => {
     // In a real app, you would call an API to update the user profile.
@@ -201,12 +173,6 @@ export default function AccountPage() {
       </div>
     );
   }
-  
-  const formatPrice = (price: number) => price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric', timeZone: 'UTC' });
-  };
   
   const getInitials = (name: string) => {
     if (!name) return '';
@@ -296,40 +262,6 @@ export default function AccountPage() {
             <CardFooter className="border-t pt-6 flex justify-end">
                  <AddressForm userId={currentUser.id} onAddressAdded={() => fetchAddresses(currentUser.id)} />
             </CardFooter>
-        </PageSection>
-
-        <PageSection icon={<Package className="h-8 w-8" />} title="Meus Pedidos" description="Acompanhe o histórico dos seus pedidos.">
-             <CardContent className="p-0">
-                {isOrdersLoading ? (
-                  <div className="p-6 text-center text-muted-foreground">
-                    <Loader2 className="h-6 w-6 animate-spin mx-auto" />
-                  </div>
-                ) : userOrders.length > 0 ? (
-                    <div className="divide-y">
-                        {userOrders.map(order => (
-                            <div key={order.id} className="p-6 grid grid-cols-2 md:grid-cols-4 gap-4 items-center">
-                                <div>
-                                    <p className="font-semibold">Pedido #{order.id.substring(0,8)}...</p>
-                                    <p className="text-sm text-muted-foreground">{formatDate(order.created_at)}</p>
-                                </div>
-                                <div>
-                                    <Badge className={cn('text-xs w-full justify-center text-center', statusColors[order.status])}>
-                                        {order.status}
-                                    </Badge>
-                                </div>
-                                <p className="font-medium text-right md:text-center">{formatPrice(order.total_price)}</p>
-                                <div className="text-right col-span-2 md:col-span-1">
-                                    <Button variant="outline" size="sm" onClick={() => router.push(`/dashboard/orders/${order.id}`)}>Ver Detalhes</Button>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                ) : (
-                    <div className="p-6 text-center text-muted-foreground">
-                        <p>Você ainda não fez nenhum pedido.</p>
-                    </div>
-                )}
-            </CardContent>
         </PageSection>
 
         <Separator />
