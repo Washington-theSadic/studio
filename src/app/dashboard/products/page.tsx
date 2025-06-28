@@ -637,7 +637,7 @@ export default function DashboardProductsPage() {
                   disabled={isSubmitting}
                 />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="grid gap-2">
                   <Label htmlFor="price">Preço</Label>
                   <Input id="price" name="price" type="number" step="0.01" value={formState.price || ''} onChange={handleInputChange} required disabled={isSubmitting} />
@@ -647,7 +647,7 @@ export default function DashboardProductsPage() {
                   <Input id="sale_price" name="sale_price" type="number" step="0.01" value={formState.sale_price || ''} onChange={handleInputChange} disabled={isSubmitting} />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="grid gap-2">
                   <Label htmlFor="category">Categoria</Label>
                   <Select name="category" value={formState.category} onValueChange={(value) => setFormState(p => ({...p, category: value as Product['category']}))} required disabled={isSubmitting}>
@@ -676,7 +676,7 @@ export default function DashboardProductsPage() {
                     </Select>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                  <div className="grid gap-2">
                     <Label htmlFor="stock">Estoque</Label>
                     <Input id="stock" name="stock" type="number" value={formState.stock || ''} onChange={handleInputChange} required disabled={isSubmitting} />
