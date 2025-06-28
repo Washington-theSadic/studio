@@ -1,6 +1,7 @@
 
 'use server';
 
+import { revalidatePath } from 'next/cache';
 import type { Order, OrderItem } from '@/lib/orders';
 import { notifyAdminOfNewOrder } from '@/ai/flows/notify-admin-flow';
 import type { NewOrderNotificationInput } from '@/ai/flows/notify-admin-flow';
@@ -59,6 +60,10 @@ export async function createOrder(input: CreateOrderInput): Promise<Order> {
   };
   await notifyAdminOfNewOrder(notificationInput);
 
+  revalidatePath('/dashboard');
+  revalidatePath('/dashboard/orders');
+  revalidatePath('/account/orders');
+
   return data as Order;
 }
 
@@ -93,6 +98,14 @@ export async function updateOrderStatus(id: string, status: Order['status']): Pr
     .select()
     .single();
 
+  if (!error) {
+    revalidatePath('/dashboard');
+    revalidatePath('/dashboard/orders');
+    revalidatePath(`/dashboard/orders/${id}`);
+    revalidatePath('/account/orders');
+    revalidatePath(`/account/orders/${id}`);
+  }
+
   return { data, error: error ? error.message : null };
 }
 
@@ -114,6 +127,14 @@ export async function deleteOrder(id: string): Promise<{ error: string | null }>
     .delete()
     .eq('id', id);
 
+  if (!error) {
+    revalidatePath('/dashboard');
+    revalidatePath('/dashboard/orders');
+    revalidatePath(`/dashboard/orders/${id}`);
+    revalidatePath('/account/orders');
+    revalidatePath(`/account/orders/${id}`);
+  }
+
   return { error: error ? error.message : null };
 }
 
@@ -123,6 +144,16 @@ export async function deleteOrders(ids: string[]): Promise<{ error: string | nul
     .from('orders')
     .delete()
     .in('id', ids);
+
+  if (!error) {
+    revalidatePath('/dashboard');
+    revalidatePath('/dashboard/orders');
+    revalidatePath('/account/orders');
+    ids.forEach(id => {
+      revalidatePath(`/dashboard/orders/${id}`);
+      revalidatePath(`/account/orders/${id}`);
+    });
+  }
 
   return { error: error ? error.message : null };
 }
