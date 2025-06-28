@@ -2,7 +2,7 @@
 "use client";
 
 import Link from 'next/link';
-import { ShoppingCart, Menu, User, LogOut } from 'lucide-react';
+import { ShoppingCart, Menu, User, LogOut, LifeBuoy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useCart } from '@/context/cart-context';
 import { useAuth } from '@/context/auth-context';
@@ -68,6 +68,18 @@ export default function Header() {
   const handleLinkClick = () => {
     setIsSheetOpen(false);
   }
+  
+  const handleHelpClick = () => {
+    if (!currentUser) return;
+
+    const phoneNumber = '5577998188469';
+    const message = `Olá, me chamo ${currentUser.name}, preciso de ajuda.`;
+    const encodedMessage = encodeURIComponent(message);
+    const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodedMessage}`;
+
+    window.location.href = whatsappUrl;
+    setIsSheetOpen(false);
+  };
 
   const AuthNav = ({ onLinkClick }: { onLinkClick?: () => void }) => {
     if (loading) return <Skeleton className="h-9 w-24" />;
@@ -166,16 +178,26 @@ export default function Header() {
                   <Menu className="h-5 w-5" />
                 </Button>
               </SheetTrigger>
-              <SheetContent>
+              <SheetContent className="flex flex-col">
                 <SheetHeader>
                   <SheetTitle>Menu</SheetTitle>
                 </SheetHeader>
-                <div className="flex flex-col gap-6 pt-6">
-                  <NavLinks className="flex-col text-lg items-start" onLinkClick={handleLinkClick} isAdmin={isAdmin} />
-                  <div className="border-t pt-6">
-                    <AuthNav onLinkClick={handleLinkClick} />
+                <div className="flex-grow pt-6">
+                  <div className="flex flex-col gap-6">
+                    <NavLinks className="flex-col text-lg items-start" onLinkClick={handleLinkClick} isAdmin={isAdmin} />
+                    <div className="border-t pt-6">
+                      <AuthNav onLinkClick={handleLinkClick} />
+                    </div>
                   </div>
                 </div>
+                {currentUser && (
+                  <div className="mt-auto border-t pt-4">
+                    <Button variant="outline" className="w-full justify-start" onClick={handleHelpClick}>
+                      <LifeBuoy className="mr-2 h-4 w-4" />
+                      <span>Precisa de ajuda?</span>
+                    </Button>
+                  </div>
+                )}
               </SheetContent>
             </Sheet>
           </div>
