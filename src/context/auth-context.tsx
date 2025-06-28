@@ -109,20 +109,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     const fileExtension = file.name.split('.').pop();
     const fileName = `${crypto.randomUUID()}.${fileExtension}`;
-    // This path structure is most likely to comply with standard RLS policies
-    // that allow a user to write to their own folder inside a public directory.
-    const filePath = `public/${currentUser.id}/${fileName}`;
+    
+    // Alinhado com a funcionalidade de upload de produto, salvando na raiz.
+    const filePath = fileName;
 
     const { data: uploadData, error: uploadError } = await supabase.storage
-      .from('public-images') // This is the bucket name
-      .upload(filePath, file); // This is the path inside the bucket
+      .from('public-images')
+      .upload(filePath, file);
 
     if (uploadError) {
-      // Log the full error object for better debugging
+      // Log do erro completo para depuração
       console.error('Supabase Storage upload error:', JSON.stringify(uploadError, null, 2));
       const message =
         (uploadError as any).message ||
-        'Falha no upload da imagem. Verifique se as permissões de armazenamento (RLS) estão configuradas para permitir que usuários façam upload em suas pastas pessoais (ex: public/USER_ID/).';
+        'Falha no upload da imagem. Verifique se as permissões de armazenamento (RLS) estão configuradas corretamente.';
       return { error: new Error(message) };
     }
 
@@ -148,6 +148,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return { error: new Error(updateError.message || 'Falha ao atualizar o perfil do usuário.') };
     }
     
+    // Atualiza o estado local com a URL que sabemos ser correta.
     setCurrentUser((prevUser) =>
       prevUser ? { ...prevUser, avatar_url: publicUrl } : null
     );
